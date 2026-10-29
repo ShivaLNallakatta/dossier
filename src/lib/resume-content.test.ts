@@ -124,6 +124,16 @@ describe("resumeContent", () => {
     expect(resumeContent(profile, { units: [] }).projects).toEqual([]);
   });
 
+  it("leaves out a degree's notes when they only repeat the degree and school", () => {
+    const degree = { ...profile.education[0], degree: "M.Sc. in Computer Science", school: "Maharshi Dayanand University, India" };
+    const notesFor = (notes: string) =>
+      resumeContent({ ...profile, education: [degree] }, { units: [{ id: `education:${degree.id}`, label: "M.Sc.", text: notes }] }).education[0].notes;
+    expect(notesFor("M.Sc. in Computer Science, Maharshi Dayanand University, India")).toBe("");
+    expect(notesFor("Maharshi Dayanand University")).toBe("");
+    expect(notesFor("Thesis on distributed query planning")).toBe("Thesis on distributed query planning");
+    expect(notesFor("M.Sc. in Computer Science, graduated with honors")).toBe("M.Sc. in Computer Science, graduated with honors");
+  });
+
   it("leaves out entries left blank, so their section and its heading go too", () => {
     const blankProject = { ...profile.projects[0], id: "p-blank", name: " ", link: "", bullets: "\n", skillIds: [] };
     const blankRole = { ...profile.experience[0], id: "e-blank", role: "", company: " ", descriptor: "", bullets: "" };

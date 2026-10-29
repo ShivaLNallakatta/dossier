@@ -96,6 +96,21 @@ const lines = (text: string) =>
     .map((line) => line.trim())
     .filter(Boolean);
 
+const words = (text: string) => text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+
+/**
+ * Whether a degree's notes only say again what its line already shows, as in
+ * "M.Sc. in Computer Science, Maharshi Dayanand University" under that very
+ * degree: every word of the notes is in the degree or the school. Such notes
+ * are left out rather than printed twice.
+ */
+function restatesDegree(notes: string, entry: { degree: string; school: string }): boolean {
+  const said = words(notes);
+  if (said.length === 0) return false;
+  const shown = new Set(words(`${entry.degree} ${entry.school}`));
+  return said.every((word) => shown.has(word));
+}
+
 /** What the resume shows, with its dates and levels in the words of `labels`. */
 export function resumeContent(
   profile: ProfileData,
@@ -134,7 +149,7 @@ export function resumeContent(
     degree: entry.degree.trim(),
     school: entry.school.trim(),
     dates: formatDateRange(entry, dates),
-    notes: notes.trim(),
+    notes: restatesDegree(notes, entry) ? "" : notes.trim(),
   });
 
   const content: ResumeContent = {

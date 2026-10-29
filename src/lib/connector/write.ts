@@ -32,7 +32,10 @@ export const writtenResumeSchema = z.object({
     .describe("Every role from get_profile by its id, with 2–5 tailored bullets; a role left out keeps its own bullets"),
   projects: z.array(z.object({ id: z.string(), bullets: z.array(z.string().max(400)).max(6) })).default([]),
   skills: z.array(z.string().max(100)).describe("The profile's own skills, most relevant first; others are dropped"),
-  education: z.array(z.object({ id: z.string(), notes: z.string().max(600) })).default([]),
+  education: z
+    .array(z.object({ id: z.string(), notes: z.string().max(600) }))
+    .default([])
+    .describe("Each degree's notes: only extras such as honors or a thesis, never the degree, school or dates the resume already shows; empty when there's nothing else"),
 });
 
 export const writtenLetterSchema = z.object({

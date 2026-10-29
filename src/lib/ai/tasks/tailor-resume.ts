@@ -21,7 +21,7 @@ import {
   type Task,
 } from "./prompt-parts";
 
-export const TAILOR_RESUME_VERSION = "tailor-resume@6";
+export const TAILOR_RESUME_VERSION = "tailor-resume@7";
 
 const answerSchema = z.object({
   summary: z.string(),
@@ -38,7 +38,7 @@ const INSTRUCTIONS = `You tailor a candidate's resume to one job, as JSON.
 - roles: every role from the profile, by id, with 2–5 bullets each. Lead with what this job cares about, keep each bullet to one line, and start with a verb.
 - projects: every project from the profile, by id, with 1–3 bullets each, written like the roles' bullets: what was built and what it shows that this job cares about.
 - skills: the candidate's own skills, most relevant to this job first. Copy their names exactly; you may leave out ones that don't help.
-- education: every entry by id, with its notes shortened or left empty.
+- education: every entry by id, with its notes shortened or left empty. Notes are only for extras such as honors, a thesis or relevant coursework: the resume already shows the degree, school and dates, so never repeat them, and leave the notes empty when there's nothing else.
 - The profile's publications go on the resume word for word, so don't answer with them; the summary may mention them.`;
 
 /** SET-9: asked for when "Resume length" has a limit; anything still over is trimmed afterwards (E10-10). */
