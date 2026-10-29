@@ -1,0 +1,6 @@
+# Shell scripts run inside Linux containers, so they keep Unix line endings
+# even when the repo is checked out on Windows (core.autocrlf=true turns them
+# into CRLF, and the container then can't run ./start.sh).
+*.sh text eol=lf
+docker/bin/* text eol=lf
+Dockerfile text eol=lf
