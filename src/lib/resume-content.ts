@@ -185,5 +185,12 @@ export function resumeContent(
     );
   }
 
+  // An entry added in the profile but left blank (or with only dates) shows
+  // nothing, so it's left out; a section with nothing left loses its heading too.
+  content.experience = content.experience.filter((role) => role.role || role.company || role.descriptor || role.bullets.length > 0);
+  content.projects = content.projects.filter((project) => project.name || project.link || project.bullets.length > 0 || project.skills.length > 0);
+  content.education = content.education.filter((entry) => entry.degree || entry.school || entry.notes);
+  content.references = content.references.filter((reference) => reference.name || reference.role || reference.contact);
+
   return content;
 }

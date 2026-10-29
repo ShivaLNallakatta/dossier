@@ -124,6 +124,22 @@ describe("resumeContent", () => {
     expect(resumeContent(profile, { units: [] }).projects).toEqual([]);
   });
 
+  it("leaves out entries left blank, so their section and its heading go too", () => {
+    const blankProject = { ...profile.projects[0], id: "p-blank", name: " ", link: "", bullets: "\n", skillIds: [] };
+    const blankRole = { ...profile.experience[0], id: "e-blank", role: "", company: " ", descriptor: "", bullets: "" };
+    const blankDegree = { ...profile.education[0], id: "ed-blank", degree: "", school: "", notes: " " };
+    const withBlanks: ProfileData = {
+      ...profile,
+      projects: [blankProject],
+      experience: [...profile.experience, blankRole],
+      education: [blankDegree],
+    };
+    const content = resumeContent(withBlanks);
+    expect(content.projects).toEqual([]);
+    expect(content.education).toEqual([]);
+    expect(content.experience.map((role) => role.id)).toEqual(profile.experience.map((role) => role.id));
+  });
+
   it("shows publications word for word, with their link, and not the ones kept off resumes (#218)", () => {
     expect(resumeContent(profile).publications).toEqual([
       {
