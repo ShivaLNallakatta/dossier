@@ -3,10 +3,21 @@ import { notFound } from "next/navigation";
 
 import { TailoredLetter, TailoredResume } from "@/components/documents/tailored-documents";
 import { loadDocuments } from "@/lib/application-documents";
+import { documentTitle } from "@/lib/pdf/document-title";
 import { verifyPrintAccess } from "@/lib/pdf/print-access";
+import { loadProfileName } from "@/lib/profile-data";
 import { printCss } from "@/lib/themes";
 
-export const metadata: Metadata = { title: "Tailored document", robots: { index: false } };
+/**
+ * The PDF's title, which viewers show in their title bar: "Jane Doe – Resume",
+ * as absolute, so the app's "· Dossier" suffix stays off what employers see.
+ */
+export async function generateMetadata({ params }: PageProps<"/print/[doc]/[id]">): Promise<Metadata> {
+  const { doc, id } = await params;
+  if (doc !== "resume" && doc !== "letter") notFound();
+  await verifyPrintAccess(`/print/${doc}/${id}`);
+  return { title: { absolute: documentTitle(await loadProfileName(), doc) }, robots: { index: false } };
+}
 
 /**
  * An application's tailored resume (/print/resume/{id}) or cover letter
