@@ -68,6 +68,12 @@ describe("a search in a line", () => {
     expect(describeSearch(query, "Germany", "FREEHIRE")).toBe("product designer · Hamburg · Remote only · Past week");
     expect(describeSearch({ ...query, place: "" }, "Germany", "FREEHIRE")).toBe("product designer · Germany · Remote only · Past week");
   });
+
+  it("names the radius in miles in the US market", () => {
+    const query = { ...EMPTY_QUERY, keywords: "data engineer", place: "Seattle, WA", country: "us" };
+    expect(describeSearch(query, "United States", "JSEARCH", "US")).toBe("data engineer · Seattle, WA, 15 mi");
+    expect(describeSearch(query, "United States", "JSEARCH", "INTERNATIONAL")).toBe("data engineer · Seattle, WA, 25 km");
+  });
 });
 
 describe("postings", () => {

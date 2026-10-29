@@ -22,6 +22,7 @@ import {
   saveJobSource,
   saveJobSourceKey,
   setConnector,
+  setMarket,
   testAiConnection,
   testJobSource,
   updateSettings,
@@ -38,6 +39,7 @@ vi.mock("@/lib/auth/session", () => ({
   getSession: async () => ({ persistent: false, issuedAt: new Date(), expiresAt: new Date(Date.now() + 60_000) }),
 }));
 vi.mock("@/lib/env", () => ({ env: { DOSSIER_SECRET: "a".repeat(32) } }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 // The real config and key handling, with a mock model behind them.
 const provider = vi.hoisted(() => ({ current: undefined as unknown }));
 vi.mock("@/lib/ai", async (importOriginal) => ({
@@ -117,10 +119,32 @@ describe("testAiConnection and listAiModels", () => {
   });
 });
 
+describe("setMarket", () => {
+  it("applies the market's paper size and date format, which can still be changed afterwards", async () => {
+    expect(await setMarket({ market: "INTERNATIONAL" })).toEqual({ ok: true, data: { paper: "A4", dateFormat: "DAY_MONTH_YEAR" } });
+    expect(await settings()).toMatchObject({ market: "INTERNATIONAL", paper: "A4", dateFormat: "DAY_MONTH_YEAR" });
+    await updateSettings({ dateFormat: "NUMERIC" });
+    expect(await settings()).toMatchObject({ market: "INTERNATIONAL", paper: "A4", dateFormat: "NUMERIC" });
+    expect(await setMarket({ market: "US" })).toEqual({ ok: true, data: { paper: "LETTER", dateFormat: "MONTH_DAY_YEAR" } });
+    expect(await settings()).toMatchObject({ market: "US", paper: "LETTER", dateFormat: "MONTH_DAY_YEAR" });
+  });
+
+  it("keeps the photo and age off resumes in the US", async () => {
+    await prisma().profileField.createMany({ data: [{ key: "showAge", value: "true" }] });
+    await setMarket({ market: "US" });
+    const fields = await prisma().profileField.findMany({ select: { key: true, value: true }, orderBy: { key: "asc" } });
+    expect(fields).toEqual([{ key: "photoOnResumes", value: "false" }]);
+  });
+
+  it("refuses a market it doesn't know", async () => {
+    expect(await setMarket({ market: "MARS" as never })).toMatchObject({ ok: false });
+  });
+});
+
 describe("updateSettings (E10-2, E10-3)", () => {
   it("saves only the settings given", async () => {
     expect(await updateSettings({ creativity: "EXPRESSIVE", strict: false })).toEqual({ ok: true, data: null });
-    expect(await settings()).toMatchObject({ creativity: "EXPRESSIVE", strict: false, showDiff: true, paper: "A4" });
+    expect(await settings()).toMatchObject({ creativity: "EXPRESSIVE", strict: false, showDiff: true, paper: "LETTER" });
   });
 
   it("goes back to the posting's language with null", async () => {
@@ -158,7 +182,8 @@ describe("job search settings (E14-4)", () => {
         source: "JSEARCH",
         jsearch: { host: "openwebninja", keyState: "none" },
         adzuna: { appId: "", keyState: "none" },
-        arbeitsagentur: { offered: true, acceptedAt: null },
+        // Germany only: the US market (the default) leaves it out.
+        arbeitsagentur: { offered: false, acceptedAt: null },
         freehire: { host: "freehire.me" },
       },
     });
@@ -167,7 +192,16 @@ describe("job search settings (E14-4)", () => {
     expect(await saveJobSource({ source: "LINKEDIN" as never })).toMatchObject({ ok: false });
   });
 
+  it("doesn't offer the Bundesagentur für Arbeit in the US market", async () => {
+    expect(await saveJobSource({ source: "ARBEITSAGENTUR", accepted: true })).toEqual({
+      ok: false,
+      error: "The Bundesagentur für Arbeit isn't offered on this server.",
+    });
+    expect((await settings()).jobSource).toBeNull();
+  });
+
   it("saves the Bundesagentur für Arbeit only with its note accepted (#223)", async () => {
+    await setMarket({ market: "INTERNATIONAL" });
     expect(await saveJobSource({ source: "ARBEITSAGENTUR" })).toEqual({
       ok: false,
       error: "Tick “I understand” under the note about the Bundesagentur für Arbeit first.",

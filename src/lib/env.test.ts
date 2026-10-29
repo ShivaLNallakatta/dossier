@@ -33,6 +33,14 @@ describe("parseEnv", () => {
     });
   });
 
+  it("reads the job market", () => {
+    expect(parseEnv(valid).DOSSIER_MARKET).toBeUndefined();
+    expect(parseEnv({ ...valid, DOSSIER_MARKET: "" }).DOSSIER_MARKET).toBeUndefined();
+    expect(parseEnv({ ...valid, DOSSIER_MARKET: "US" }).DOSSIER_MARKET).toBe("us");
+    expect(parseEnv({ ...valid, DOSSIER_MARKET: " International " }).DOSSIER_MARKET).toBe("international");
+    expect(() => parseEnv({ ...valid, DOSSIER_MARKET: "germany" })).toThrow('DOSSIER_MARKET must be us or international (got "germany").');
+  });
+
   it("reads whether the usage ping is on", () => {
     // Unset or empty: not decided, so Dossier asks (#172).
     expect(parseEnv({ ...valid, DOSSIER_TELEMETRY: "" }).DOSSIER_TELEMETRY).toBeUndefined();

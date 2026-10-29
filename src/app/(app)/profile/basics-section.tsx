@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAutosave } from "@/hooks/use-autosave";
 import type { ProfilePhoto } from "@/lib/photo";
 import { ageOn, isOptionalBasic, type Basics, type BasicsField } from "@/lib/profile";
+import type { Market } from "@/lib/settings";
 
 import { saveBasics } from "./actions";
 import { PhotoField } from "./photo-field";
@@ -66,11 +67,14 @@ export function BasicsSection({
   onChange,
   photo,
   onPhotoChange,
+  market = "INTERNATIONAL",
 }: {
   basics: Basics;
   onChange: (basics: Basics) => void;
   photo: ProfilePhoto | null;
   onPhotoChange: (photo: ProfilePhoto | null) => void;
+  /** In the US, resumes leave out the photo and age, so they're off by default and the age switch is hidden. */
+  market?: Market;
 }) {
   const track = useTrackSave();
   const { flush } = useAutosave(basics, (value) => track(saveBasics(value)));
@@ -86,7 +90,7 @@ export function BasicsSection({
 
   return (
     <Card className="grid grid-cols-2 gap-x-[18px] gap-y-5">
-      <PhotoField photo={photo} onChange={onPhotoChange} />
+      <PhotoField photo={photo} onChange={onPhotoChange} market={market} />
       {FIELDS.map(({ field, label, wide, placeholder, type, autoComplete }) => (
         <Input
           key={field}
@@ -110,21 +114,24 @@ export function BasicsSection({
         onChange={(event) => set("summary", event.target.value)}
         onBlur={() => leave("summary")}
       />
-      <Checkbox
-        className="col-span-2 pt-1"
-        label={
-          <>
-            Show my age on resumes{" "}
-            <span className="text-meta text-muted">
-              {age === null
-                ? "(add your date of birth first)"
-                : `(you're ${age}; off by default, as many places advise leaving it out)`}
-            </span>
-          </>
-        }
-        checked={basics.showAge}
-        onChange={(event) => onChange({ ...basics, showAge: event.target.checked })}
-      />
+      {/* US resumes never show an age; the switch stays only so one turned on before can be turned off. */}
+      {(market !== "US" || basics.showAge) && (
+        <Checkbox
+          className="col-span-2 pt-1"
+          label={
+            <>
+              Show my age on resumes{" "}
+              <span className="text-meta text-muted">
+                {age === null
+                  ? "(add your date of birth first)"
+                  : `(you're ${age}; off by default, as many places advise leaving it out)`}
+              </span>
+            </>
+          }
+          checked={basics.showAge}
+          onChange={(event) => onChange({ ...basics, showAge: event.target.checked })}
+        />
+      )}
     </Card>
   );
 }

@@ -4,16 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { toast } from "@/components/toast";
 
-import { addDocumentLanguage, updateSettings } from "./actions";
+import { addDocumentLanguage, setMarket, updateSettings } from "./actions";
 import { DocumentsSection, type DocumentSettings } from "./documents-section";
 
 vi.mock("./actions", () => ({
   updateSettings: vi.fn(async () => ({ ok: true, data: null })),
+  setMarket: vi.fn(async ({ market }: { market: string }) => ({
+    ok: true,
+    data: market === "US" ? { paper: "LETTER", dateFormat: "MONTH_DAY_YEAR" } : { paper: "A4", dateFormat: "DAY_MONTH_YEAR" },
+  })),
   addDocumentLanguage: vi.fn(async ({ name }: { name: string }) => ({ ok: true, data: { language: name, added: true } })),
 }));
 vi.mock("@/components/toast", () => ({ toast: vi.fn(), toastResult: (result: unknown) => result }));
 
 const initial: DocumentSettings = {
+  market: "INTERNATIONAL",
   paper: "A4",
   dateFormat: "DAY_MONTH_YEAR",
   defaultTone: "WARM",
@@ -30,6 +35,7 @@ const open = () => render(<DocumentsSection initial={initial} preview={preview} 
 beforeEach(() => {
   vi.mocked(updateSettings).mockClear();
   vi.mocked(addDocumentLanguage).mockClear();
+  vi.mocked(setMarket).mockClear();
   vi.mocked(toast).mockClear();
 });
 
@@ -43,6 +49,18 @@ describe("Documents settings (E10-3)", () => {
     expect(screen.getByLabelText("Cover letter tone")).toHaveDisplayValue("Warm");
     expect(screen.getByRole("switch", { name: "Include references" })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByLabelText("Resume length")).toHaveDisplayValue("One page");
+  });
+
+  it("switches the market and takes on its paper size and date format", async () => {
+    const user = userEvent.setup();
+    open();
+    expect(screen.getByLabelText("Market")).toHaveDisplayValue("International");
+    await user.selectOptions(screen.getByLabelText("Market"), "US");
+    expect(setMarket).toHaveBeenLastCalledWith({ market: "US" });
+    expect(screen.getByLabelText("Market")).toHaveDisplayValue("United States");
+    expect(screen.getByLabelText("Paper size")).toHaveDisplayValue("US Letter");
+    expect(screen.getByLabelText("Date format")).toHaveDisplayValue("September 27, 2026");
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining("Set up for the US"));
   });
 
   it("offers the posting's language, the 21 built-in ones and the user's own", () => {

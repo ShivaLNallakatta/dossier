@@ -23,6 +23,7 @@ import {
   type StoredSearch,
 } from "@/lib/job-search/search";
 import { SOURCE_INFO } from "@/lib/job-search/sources";
+import type { Market } from "@/lib/settings";
 
 import { acceptArbeitsagenturNote, runJobSearch } from "./actions";
 import { PastSearches } from "./past-searches";
@@ -54,6 +55,8 @@ export type JobsScreenProps = {
   counts: { searches: number; saved: number; dismissed: number };
   /** Now, from the server, so "3 days ago" reads the same on both sides. */
   today: string;
+  /** Settings → Documents → Market: distances in miles in the US. */
+  market?: Market;
 };
 
 const SETTINGS_HREF = "/settings?section=jobs";
@@ -72,6 +75,7 @@ export function JobsScreen({
   history = [],
   counts,
   today,
+  market = "INTERNATIONAL",
 }: JobsScreenProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -91,7 +95,7 @@ export function JobsScreen({
     return (
       <>
         {header}
-        <PastSearches days={history} countries={countries} />
+        <PastSearches days={history} countries={countries} market={market} />
       </>
     );
   }
@@ -100,7 +104,7 @@ export function JobsScreen({
     return (
       <>
         {header}
-        <PostingResults key={view} mode={view} postings={kept} today={today} scoreInClaude={scoreInClaude} />
+        <PostingResults key={view} mode={view} postings={kept} today={today} scoreInClaude={scoreInClaude} market={market} />
       </>
     );
   }
@@ -137,7 +141,7 @@ export function JobsScreen({
     <>
       {header}
       {arbeitsagenturNote && <ArbeitsagenturNote accepted={false} onAccept={acceptArbeitsagentur} className="mx-10 mb-5 max-w-[760px]" />}
-      <SearchForm source={source} countries={countries} query={query} pending={pending} onSearch={run} />
+      <SearchForm source={source} countries={countries} query={query} pending={pending} onSearch={run} market={market} />
       {/* Announces each new set of results; the list itself is replaced. */}
       <p role="status" className="sr-only">
         {pending ? "Searching…" : failed ? failed.problem.message : search ? `${search.postings.length} postings found.` : ""}
@@ -151,6 +155,7 @@ export function JobsScreen({
             mode="search"
             search={search}
             today={today}
+            market={market}
             scoreInClaude={scoreInClaude}
             onSearchAgain={() => run(search.query)}
             searching={pending}
@@ -173,12 +178,14 @@ function SearchForm({
   query,
   pending,
   onSearch,
+  market,
 }: {
   source: JobSource;
   countries: readonly Country[];
   query: SearchQuery;
   pending: boolean;
   onSearch: (query: SearchQuery) => void;
+  market: Market;
 }) {
   const [form, setForm] = useState(query);
   const [errors, setErrors] = useState<{ keywords?: string; country?: string }>({});
@@ -213,7 +220,7 @@ function SearchForm({
       onSubmit={submit}
       className="mx-10 mb-7 grid grid-cols-1 items-start gap-x-4 gap-y-4 rounded-panel border border-line-card bg-card p-6 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_1.3fr_1fr_1fr]"
     >
-      <SearchFields value={form} onChange={set} source={source} countries={countries} errors={errors} />
+      <SearchFields value={form} onChange={set} source={source} countries={countries} errors={errors} market={market} />
       <div className="flex flex-wrap items-center justify-between gap-4 sm:col-span-2 lg:col-span-5">
         <RemoteOnlyField value={form} onChange={set} source={source} />
         <Button type="submit" aria-disabled={pending || undefined}>

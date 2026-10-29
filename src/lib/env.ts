@@ -81,6 +81,15 @@ const schema = z.object({
       .toLowerCase()
       .pipe(z.enum(["on", "off"], { error: (issue) => `DOSSIER_TELEMETRY must be on or off (got "${String(issue.input)}").` })),
   ),
+  // The job market (src/lib/settings.ts, MARKETS), until one is chosen in
+  // Settings → Documents. Unset means us.
+  DOSSIER_MARKET: optional(
+    z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.enum(["us", "international"], { error: (issue) => `DOSSIER_MARKET must be us or international (got "${String(issue.input)}").` })),
+  ),
   DOSSIER_AI_PROVIDER: optional(
     z.enum(AI_PROVIDERS, {
       error: (issue) =>

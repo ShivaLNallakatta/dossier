@@ -1,4 +1,5 @@
 import type { Creativity } from "@/generated/prisma/enums";
+import type { Market } from "@/lib/settings";
 import type { Extracted, Match } from "@/lib/application-data";
 import { citationText } from "@/lib/citation";
 import { factTexts, formatDateRange, languageLevelLabel, resumePublications, type ProfileData } from "@/lib/profile";
@@ -17,6 +18,8 @@ export type TaskOptions = {
   language: string | null;
   /** SET-9 "Resume length": the most pages a resume may have, or null for no limit (E10-10). */
   maxPages?: number | null;
+  /** Settings → Documents → Market: in the US, English is written the American way. Left out, nothing is added. */
+  market?: Market;
   signal?: AbortSignal;
 };
 
@@ -140,11 +143,14 @@ export const CREATIVITY: Record<Creativity, string> = {
   EXPRESSIVE: "Write with personality and varied phrasing. Only the wording is free: the facts stay exactly as they are.",
 };
 
-/** SET-7: which language to write in. */
-export function languageRule(language: string | null): string {
-  return language
-    ? `Write everything in ${language}.`
-    : "Write everything in the same language as the job posting.";
+/** For the US market: how English is written there. */
+export const US_ENGLISH =
+  "When you write in English, write for a US employer: American spelling (\"organize\", \"color\", \"center\", \"program\"), US punctuation and vocabulary, dollar amounts as $120,000, and dates as month, day, year. Never add a photo, age, date of birth, marital status, nationality or other personal details US resumes leave out.";
+
+/** SET-7: which language to write in, and in the US market, the American way of writing English. */
+export function languageRule(language: string | null, market?: Market): string {
+  const rule = language ? `Write everything in ${language}.` : "Write everything in the same language as the job posting.";
+  return market === "US" ? `${rule} ${US_ENGLISH}` : rule;
 }
 
 /**

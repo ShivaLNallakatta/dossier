@@ -4,6 +4,37 @@ import { AiProvider, Creativity, DateFormat, PaperSize, Tone } from "@/generated
 import { EMPTY_QUERY, JOB_SOURCES, JSEARCH_HOSTS, searchQuerySchema } from "@/lib/job-search/search";
 import { startupsRefreshSchema } from "@/lib/startups/types";
 
+// ─── Market ──────────────────────────────────────────────────────────────────
+// The job market Dossier is set up for. It decides the defaults that differ
+// by country (paper size, date style), how search distances are shown, and
+// the conventions the AI follows when it writes in English. The United
+// States is the default; "International" keeps the European conventions
+// (A4, 27 September 2026, kilometres). DOSSIER_MARKET sets it until a
+// choice is saved in Settings → Documents.
+
+export const MARKETS = ["US", "INTERNATIONAL"] as const;
+export type Market = (typeof MARKETS)[number];
+export const DEFAULT_MARKET: Market = "US";
+
+export const MARKET_OPTIONS: readonly { value: Market; label: string; description: string }[] = [
+  {
+    value: "US",
+    label: "United States",
+    description: "US Letter paper, “September 27, 2026” dates, distances in miles, American spelling, and resumes without a photo or age.",
+  },
+  {
+    value: "INTERNATIONAL",
+    label: "International",
+    description: "A4 paper, “27 September 2026” dates and distances in kilometres.",
+  },
+];
+
+/** The defaults a market sets; choosing a market in Settings applies them. */
+export const MARKET_PRESETS: Record<Market, { paper: PaperSize; dateFormat: DateFormat }> = {
+  US: { paper: PaperSize.LETTER, dateFormat: DateFormat.MONTH_DAY_YEAR },
+  INTERNATIONAL: { paper: PaperSize.A4, dateFormat: DateFormat.DAY_MONTH_YEAR },
+};
+
 /** Date styles for documents (SET-6), labelled with an example as in the prototype. */
 export const DATE_FORMATS: readonly { value: DateFormat; label: string }[] = [
   { value: DateFormat.DAY_MONTH_YEAR, label: "27 September 2026" },
@@ -112,8 +143,11 @@ export const settingsSchema = z.object({
   strict: flag(true),
   /** "Show what changed" (SET-5). */
   showDiff: flag(true),
-  paper: z.enum(PaperSize).catch(PaperSize.A4),
-  dateFormat: z.enum(DateFormat).catch(DateFormat.DAY_MONTH_YEAR),
+  /** The job market (MARKETS). settingsFromRows() fills it in when it isn't saved, from DOSSIER_MARKET or DEFAULT_MARKET. */
+  market: z.enum(MARKETS).catch(DEFAULT_MARKET),
+  /** Unsaved, these follow the market (MARKET_PRESETS); see settingsFromRows(). */
+  paper: z.enum(PaperSize).catch(PaperSize.LETTER),
+  dateFormat: z.enum(DateFormat).catch(DateFormat.MONTH_DAY_YEAR),
   defaultTone: z.enum(Tone).catch(Tone.WARM),
   /** Language for generated documents; null means "the posting's language" (SET-7). */
   docLanguage: z.string().nullable().catch(null),
@@ -236,9 +270,18 @@ export const settingsSchema = z.object({
 });
 export type SettingsData = z.output<typeof settingsSchema>;
 
-/** The settings from Setting rows; keys it doesn't know are ignored. */
-export function settingsFromRows(rows: readonly { key: string; value: string }[]): SettingsData {
+/**
+ * The settings from Setting rows; keys it doesn't know are ignored. Without a
+ * saved market, `fallbackMarket` (DOSSIER_MARKET on the server) decides, and
+ * the paper size and date format that aren't saved follow the market.
+ */
+export function settingsFromRows(rows: readonly { key: string; value: string }[], fallbackMarket: Market = DEFAULT_MARKET): SettingsData {
   const values: Record<string, string> = Object.fromEntries(rows.map((row) => [row.key, row.value]));
+  const market = (MARKETS as readonly string[]).includes(values.market) ? (values.market as Market) : fallbackMarket;
+  values.market = market;
+  // Not saved, or a value that doesn't fit: the market's default.
+  if (!(Object.values(PaperSize) as string[]).includes(values.paper)) values.paper = MARKET_PRESETS[market].paper;
+  if (!(Object.values(DateFormat) as string[]).includes(values.dateFormat)) values.dateFormat = MARKET_PRESETS[market].dateFormat;
   // Up to 1.7, the limit was "Keep resumes to one page" (onePage), and off meant no limit. Databases and export files may still have it.
   if (values.pageLimit === undefined && values.onePage === "false") values.pageLimit = "none";
   if (values.pageLimit === undefined && values.onePage === "true") values.pageLimit = "1";

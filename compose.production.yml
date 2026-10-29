@@ -45,6 +45,8 @@ services:
       DOSSIER_AI_TIMEOUT_SECONDS: ${DOSSIER_AI_TIMEOUT_SECONDS:-}
       # The daily usage ping: unset, Dossier asks after sign-in; on or off answers in advance (see Privacy in the wiki).
       DOSSIER_TELEMETRY: ${DOSSIER_TELEMETRY:-}
+      # The job market, us (default) or international, until one is chosen in Settings → Documents.
+      DOSSIER_MARKET: ${DOSSIER_MARKET:-}
       # Defaults for Settings → Job search.
       DOSSIER_JOBS_SOURCE: ${DOSSIER_JOBS_SOURCE:-}
       DOSSIER_JSEARCH_KEY: ${DOSSIER_JSEARCH_KEY:-}

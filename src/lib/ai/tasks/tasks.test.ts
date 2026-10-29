@@ -282,6 +282,18 @@ describe("tailorResume", () => {
     expect(sent(provider).system).toMatch(/reasonable conclusions/);
     expect(sent(provider).system).toMatch(/Write everything in Dutch\./);
   });
+
+  it("writes English the American way for the US market, and only then", async () => {
+    const system = async (market?: "US" | "INTERNATIONAL") => {
+      const provider = model(answer);
+      await tailorResume(provider, { profile, extracted, match: null, facts: [], posting }, { ...options, market });
+      return sent(provider).system;
+    };
+    expect(await system("US")).toMatch(/American spelling/);
+    expect(await system("US")).toMatch(/Never add a photo, age, date of birth/);
+    expect(await system("INTERNATIONAL")).not.toMatch(/American spelling/);
+    expect(await system()).not.toMatch(/American spelling/);
+  });
 });
 
 describe("writeCoverLetter", () => {

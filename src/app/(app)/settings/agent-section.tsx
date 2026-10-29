@@ -11,6 +11,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { useAutosave } from "@/hooks/use-autosave";
 import type { Country } from "@/lib/job-search/countries";
 import { searchHref, type JobSource, type SearchQuery } from "@/lib/job-search/search";
+import type { Market } from "@/lib/settings";
 
 import { saveAgentSettings } from "../agent/actions";
 import { RemoteOnlyField, SearchFields, type SearchFieldErrors } from "../jobs/search-fields";
@@ -44,6 +45,7 @@ export function AgentSection({
   aiReady,
   countries,
   timeZone,
+  market = "INTERNATIONAL",
 }: {
   initial: AgentSettings;
   /** The source in Settings → Job search; null while job search is off. */
@@ -52,6 +54,8 @@ export function AgentSection({
   countries: readonly Country[];
   /** The user's time zone, which the hour is in. */
   timeZone: string;
+  /** Settings → Documents → Market: distances in miles in the US. */
+  market?: Market;
 }) {
   const track = useTrackSave();
   const [settings, setSettings] = useState(initial);
@@ -134,7 +138,7 @@ export function AgentSection({
           </p>
         </div>
         <div className="grid grid-cols-1 items-start gap-x-4 gap-y-4 sm:grid-cols-2" onBlur={flush}>
-          <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} />
+          <SearchFields value={settings.query} onChange={setQuery} source={source} countries={countries} errors={errors} market={market} />
           <div className="sm:col-span-2">
             <RemoteOnlyField value={settings.query} onChange={setQuery} source={source} />
           </div>

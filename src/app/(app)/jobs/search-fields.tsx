@@ -3,9 +3,11 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { distanceLabel } from "@/lib/distance";
 import type { Country } from "@/lib/job-search/countries";
 import { POSTED_WITHIN, RADII_KM, type JobSource, type RadiusKm, type SearchQuery } from "@/lib/job-search/search";
 import { SOURCE_INFO, sourceCovers } from "@/lib/job-search/sources";
+import type { Market } from "@/lib/settings";
 
 // A search's fields, as Find jobs asks them (E14-6) and Settings → Job agent
 // saves its search (E16-7).
@@ -27,6 +29,7 @@ export function SearchFields({
   countries,
   errors = {},
   onBlur,
+  market = "INTERNATIONAL",
 }: {
   value: SearchQuery;
   onChange: (patch: Partial<SearchQuery>) => void;
@@ -35,6 +38,8 @@ export function SearchFields({
   errors?: SearchFieldErrors;
   /** For text fields that save once typing is done. */
   onBlur?: () => void;
+  /** Distances are shown in miles in the US market; searches still ask in kilometres. */
+  market?: Market;
 }) {
   const uncovered = uncoveredCountry(source, value, countries);
   const noRadius = source !== null && !SOURCE_INFO[source].radius;
@@ -67,7 +72,7 @@ export function SearchFields({
       >
         {RADII_KM.map((km) => (
           <option key={km} value={km}>
-            {km} km
+            {distanceLabel(km, market)}
           </option>
         ))}
       </Select>

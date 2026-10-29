@@ -24,7 +24,8 @@ import { prisma } from "@/lib/prisma";
 import { applySecretChange, JOB_SOURCE_KEY } from "@/lib/secrets";
 
 import { seedBuiltIns } from "../../../../prisma/seed/built-ins";
-import { isJobRetention } from "@/lib/settings";
+import { PHOTO_ON_RESUMES_KEY } from "@/lib/photo";
+import { isJobRetention, MARKET_PRESETS, MARKETS } from "@/lib/settings";
 import { loadSettings, saveSettings } from "@/lib/settings-data";
 
 // Settings → AI provider (E6-3). Every field saves on its own, so a test
@@ -203,6 +204,28 @@ export const updateSettings = action(
     return null;
   },
 );
+
+/**
+ * Settings → Documents → Market: saves the market and applies its defaults
+ * (MARKET_PRESETS), which can still be changed one by one afterwards. The
+ * US market also keeps the photo and age off resumes, as US employers expect.
+ */
+export const setMarket = action(z.object({ market: z.enum(MARKETS) }), async ({ market }) => {
+  const preset = MARKET_PRESETS[market];
+  await prisma.$transaction(async (tx) => {
+    await saveSettings({ market, ...preset }, tx);
+    if (market === "US") {
+      await tx.profileField.deleteMany({ where: { key: "showAge" } });
+      await tx.profileField.upsert({
+        where: { key: PHOTO_ON_RESUMES_KEY },
+        create: { key: PHOTO_ON_RESUMES_KEY, value: "false" },
+        update: { value: "false" },
+      });
+    }
+  });
+  revalidatePath("/", "layout");
+  return preset;
+});
 
 /**
  * "Other language…" (SET-7): adds a language to the list and writes

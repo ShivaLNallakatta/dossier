@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { Country } from "@/lib/job-search/countries";
 import { describeSearch, searchRunHref, type PastSearchDay } from "@/lib/job-search/search";
 import { SOURCE_INFO } from "@/lib/job-search/sources";
+import type { Market } from "@/lib/settings";
 
 import { removeJobSearch } from "./actions";
 
@@ -16,7 +17,16 @@ import { removeJobSearch } from "./actions";
  * Past searches (E14-10): every kept search, newest first, grouped by the day
  * it ran. Opening one shows what it found without asking the source again.
  */
-export function PastSearches({ days, countries }: { days: PastSearchDay[]; countries: readonly Country[] }) {
+export function PastSearches({
+  days,
+  countries,
+  market = "INTERNATIONAL",
+}: {
+  days: PastSearchDay[];
+  countries: readonly Country[];
+  /** How distances are written (Settings → Documents → Market). */
+  market?: Market;
+}) {
   const router = useRouter();
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const shown = days.map((day) => ({ ...day, searches: day.searches.filter((search) => !removed.has(search.id)) })).filter((day) => day.searches.length > 0);
@@ -52,7 +62,7 @@ export function PastSearches({ days, countries }: { days: PastSearchDay[]; count
           <h2 className="text-label font-medium text-muted">{day.day}</h2>
           <ul className="flex flex-col gap-2">
             {day.searches.map((search) => {
-              const what = describeSearch(search.query, countryName(search.query.country), search.source);
+              const what = describeSearch(search.query, countryName(search.query.country), search.source, market);
               return (
                 <li key={search.id} className="flex items-center justify-between gap-4 rounded-card border border-line-card bg-card px-4 py-3 hover:border-line-strong">
                   <Link href={searchRunHref(search.id)} className="flex min-w-0 flex-col gap-0.5 text-ink hover:text-ink">

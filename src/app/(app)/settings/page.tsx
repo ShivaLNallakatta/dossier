@@ -68,6 +68,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           aiReady={await isAiConfigured()}
           countries={COUNTRIES}
           timeZone={await lastKnownTimeZone()}
+          market={settings.market}
         />
       ) : section === "google" ? (
         <>
@@ -112,6 +113,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
         <DocumentsSection
           // Only these fields: the settings also hold the encrypted API key, which never leaves the server.
           initial={{
+            market: settings.market,
             paper: settings.paper,
             dateFormat: settings.dateFormat,
             defaultTone: settings.defaultTone,

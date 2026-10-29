@@ -50,7 +50,7 @@ describe("the Agent screen's data (E16-6)", () => {
     expect(view.belowMinimum.map((entry) => entry.title)).toEqual(["Posting low"]);
     expect(view.scored[1]).toMatchObject({ facts: "Berlin · Remote", origin: "Posted 2 days ago · via LinkedIn on JSearch", draftJobId: job.id });
     expect(view).toMatchObject({
-      search: "Data scientist · Berlin, 25 km · via JSearch",
+      search: "Data scientist · Berlin, 15 mi · via JSearch",
       setupProblem: null,
       limitReached: false,
       lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },

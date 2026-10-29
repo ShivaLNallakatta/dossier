@@ -12,15 +12,17 @@ import { Toggle } from "@/components/ui/toggle";
 import { DocumentKind, type DateFormat, type PaperSize, type Tone } from "@/generated/prisma/enums";
 import { DOCUMENT_LANGUAGES } from "@/lib/document-language";
 import { FILE_NAME_TOKENS, resolveFileName } from "@/lib/file-name";
-import { DATE_FORMATS, PAGE_LIMITS, type PageLimit } from "@/lib/settings";
+import { DATE_FORMATS, MARKET_OPTIONS, PAGE_LIMITS, type Market, type PageLimit } from "@/lib/settings";
 import { PAPER_SIZES } from "@/lib/themes";
 import { TONES } from "@/lib/tones";
 import { useAutosave } from "@/hooks/use-autosave";
 
-import { addDocumentLanguage, updateSettings } from "./actions";
+import { addDocumentLanguage, setMarket, updateSettings } from "./actions";
 import { SettingsSectionIntro } from "./settings-screen";
 
 export type DocumentSettings = {
+  /** The job market; choosing one applies its paper size and date format. */
+  market: Market;
   paper: PaperSize;
   dateFormat: DateFormat;
   defaultTone: Tone;
@@ -62,6 +64,21 @@ export function DocumentsSection({
     });
   };
 
+  const changeMarket = (market: Market) => {
+    const previous = settings;
+    setSettings({ ...settings, market });
+    void track(setMarket({ market })).then((answer) => {
+      const result = toastResult(answer);
+      if (!result.ok) return setSettings(previous);
+      setSettings((current) => ({ ...current, market, ...result.data }));
+      toast(
+        market === "US"
+          ? "Set up for the US: Letter paper, US dates, miles, American spelling, and no photo or age on resumes."
+          : "Set up for international markets: A4 paper, day-month-year dates and kilometres.",
+      );
+    });
+  };
+
   const { flush } = useAutosave(settings.fileNamePattern, (fileNamePattern) =>
     track(updateSettings({ fileNamePattern })),
   );
@@ -99,6 +116,20 @@ export function DocumentsSection({
     <>
       <SettingsSectionIntro title="Documents">Defaults for every new application. You can still change them per job.</SettingsSectionIntro>
       <Card padding="none" className="grid gap-x-[18px] gap-y-5 px-7 py-[26px] sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Select
+            label="Market"
+            hint={MARKET_OPTIONS.find((option) => option.value === settings.market)?.description}
+            value={settings.market}
+            onChange={(event) => changeMarket(event.target.value as Market)}
+          >
+            {MARKET_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
         <Select label="Paper size" value={settings.paper} onChange={(event) => change({ paper: event.target.value as PaperSize })}>
           {Object.entries(PAPER_SIZES).map(([value, size]) => (
             <option key={value} value={value}>

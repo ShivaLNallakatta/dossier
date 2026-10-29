@@ -26,7 +26,7 @@ describe("document dates", () => {
 });
 
 describe("stored settings", () => {
-  it("reads an empty table as the prototype's defaults", () => {
+  it("reads an empty table as the prototype's defaults, for the US market", () => {
     expect(settingsFromRows([])).toEqual({
       provider: null,
       baseUrl: null,
@@ -35,8 +35,9 @@ describe("stored settings", () => {
       creativity: "BALANCED",
       strict: true,
       showDiff: true,
-      paper: "A4",
-      dateFormat: "DAY_MONTH_YEAR",
+      market: "US",
+      paper: "LETTER",
+      dateFormat: "MONTH_DAY_YEAR",
       defaultTone: "WARM",
       docLanguage: null,
       resumeLanguage: null,
@@ -129,8 +130,18 @@ describe("stored settings", () => {
       { key: "jobRetentionHours", value: "5" },
       { key: "theme", value: "dark" },
     ]);
-    expect(settings).toMatchObject({ provider: null, paper: "A4", strict: true, customLanguages: [], quietDays: 7, jobRetentionHours: 24 });
+    expect(settings).toMatchObject({ provider: null, paper: "LETTER", strict: true, customLanguages: [], quietDays: 7, jobRetentionHours: 24 });
     expect(settings).not.toHaveProperty("theme");
+  });
+
+  it("takes the paper size and date format from the market until they're saved", () => {
+    expect(settingsFromRows([], "INTERNATIONAL")).toMatchObject({ market: "INTERNATIONAL", paper: "A4", dateFormat: "DAY_MONTH_YEAR" });
+    expect(settingsFromRows([{ key: "market", value: "INTERNATIONAL" }])).toMatchObject({ market: "INTERNATIONAL", paper: "A4", dateFormat: "DAY_MONTH_YEAR" });
+    // A saved market wins over the fallback (DOSSIER_MARKET).
+    expect(settingsFromRows([{ key: "market", value: "US" }], "INTERNATIONAL")).toMatchObject({ market: "US", paper: "LETTER" });
+    // Saved choices stay as they are.
+    expect(settingsFromRows([{ key: "paper", value: "A4" }, { key: "dateFormat", value: "NUMERIC" }])).toMatchObject({ market: "US", paper: "A4", dateFormat: "NUMERIC" });
+    expect(settingsFromRows([{ key: "market", value: "MARS" }, { key: "dateFormat", value: "SOON" }], "INTERNATIONAL")).toMatchObject({ market: "INTERNATIONAL", dateFormat: "DAY_MONTH_YEAR" });
   });
 
   it("reads the old one-page switch as a page limit (SET-9)", () => {

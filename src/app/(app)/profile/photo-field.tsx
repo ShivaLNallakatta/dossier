@@ -21,6 +21,7 @@ import {
   type ProfilePhoto,
   type Size,
 } from "@/lib/photo";
+import type { Market } from "@/lib/settings";
 
 import { removePhoto, savePhoto, setPhotoOnResumes } from "./actions";
 
@@ -33,7 +34,16 @@ const STEP = 8;
  * The profile photo (#224) in Basics: add one, crop it, change or remove it,
  * and whether resumes show it. Each theme draws it in its own shape and place.
  */
-export function PhotoField({ photo, onChange }: { photo: ProfilePhoto | null; onChange: (photo: ProfilePhoto | null) => void }) {
+export function PhotoField({
+  photo,
+  onChange,
+  market = "INTERNATIONAL",
+}: {
+  photo: ProfilePhoto | null;
+  onChange: (photo: ProfilePhoto | null) => void;
+  /** In the US, a new photo starts off resumes: employers there expect resumes without one. */
+  market?: Market;
+}) {
   const track = useTrackSave();
   const fileInput = useRef<HTMLInputElement>(null);
   const [picked, setPicked] = useState<HTMLImageElement | null>(null);
@@ -56,7 +66,7 @@ export function PhotoField({ photo, onChange }: { photo: ProfilePhoto | null; on
   }
 
   async function use(src: string) {
-    const next = { src, onResumes: photo?.onResumes ?? true };
+    const next = { src, onResumes: photo?.onResumes ?? market !== "US" };
     const result = await track(savePhoto(next));
     if (!result.ok) return toast(result.error);
     onChange(next);
@@ -111,6 +121,7 @@ export function PhotoField({ photo, onChange }: { photo: ProfilePhoto | null; on
         </p>
         <p className="text-label text-muted">
           For resumes: each theme shows it in its own shape and place. It stays on this server and is never sent to the AI.
+          {market === "US" && " US employers usually expect resumes without a photo, so it starts off them."}
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Button variant="secondary" size="sm" onClick={() => fileInput.current?.click()}>

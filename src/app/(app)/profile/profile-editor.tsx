@@ -8,6 +8,7 @@ import { SavedIndicator } from "@/components/saved-indicator";
 import { buttonClassName } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { factTexts, filledBasics, REQUIRED_BASICS, type EntryOrder, type ProfileData } from "@/lib/profile";
+import type { Market } from "@/lib/settings";
 
 import { BasicsSection } from "./basics-section";
 import { EducationSection } from "./education-section";
@@ -28,7 +29,18 @@ import { SECTIONS, sectionHref, type SectionId } from "./sections";
 /** How experience, projects and education are ordered (E4-9), from Settings. */
 export type ProfileOrder = { experience: EntryOrder; projects: EntryOrder; education: EntryOrder };
 
-export function ProfileEditor({ initial, section, order }: { initial: ProfileData; section: SectionId; order: ProfileOrder }) {
+export function ProfileEditor({
+  initial,
+  section,
+  order,
+  market = "INTERNATIONAL",
+}: {
+  initial: ProfileData;
+  section: SectionId;
+  order: ProfileOrder;
+  /** Settings → Documents → Market: the US keeps the photo and age off resumes. */
+  market?: Market;
+}) {
   const [profile, setProfile] = useState(initial);
   const saves = useSaveTracker();
 
@@ -55,6 +67,7 @@ export function ProfileEditor({ initial, section, order }: { initial: ProfileDat
         onChange={(basics) => setProfile((current) => ({ ...current, basics }))}
         photo={profile.photo}
         onPhotoChange={(photo) => setProfile((current) => ({ ...current, photo }))}
+        market={market}
       />
     ),
     skills: <SkillsSection profile={profile} update={setProfile} />,

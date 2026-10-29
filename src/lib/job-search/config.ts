@@ -30,7 +30,8 @@ export type JobSearchConfig = {
   freehire: { url: string };
 };
 
-type SavedJobSettings = Pick<SettingsData, "jobSource" | "jsearchKeyEnc" | "jsearchHost" | "adzunaAppId" | "adzunaKeyEnc" | "arbeitsagenturAcceptedAt">;
+type SavedJobSettings = Pick<SettingsData, "jobSource" | "jsearchKeyEnc" | "jsearchHost" | "adzunaAppId" | "adzunaKeyEnc" | "arbeitsagenturAcceptedAt"> &
+  Partial<Pick<SettingsData, "market">>;
 type JobEnv = Pick<
   Env,
   | "DOSSIER_JOBS_SOURCE"
@@ -65,8 +66,9 @@ function keyOf(stored: string | null, fromEnv: string | undefined, secret?: stri
 
 export function resolveJobSearchConfig(saved: SavedJobSettings, source: JobEnv, secret?: string): JobSearchConfig {
   const jsearchKey = keyOf(saved.jsearchKeyEnc, source.DOSSIER_JSEARCH_KEY, secret);
-  const offered = source.DOSSIER_JOBS_ARBEITSAGENTUR !== "off";
   const chosen = saved.jobSource ? (saved.jobSource === "OFF" ? null : saved.jobSource) : source.DOSSIER_JOBS_SOURCE ? FROM_ENV[source.DOSSIER_JOBS_SOURCE] : null;
+  // Germany only, so the US market leaves it out of the list, unless it's the source already.
+  const offered = source.DOSSIER_JOBS_ARBEITSAGENTUR !== "off" && (saved.market !== "US" || chosen === "ARBEITSAGENTUR");
   return {
     // A BA choice saved before the server turned it off counts as Off.
     source: chosen === "ARBEITSAGENTUR" && !offered ? null : chosen,

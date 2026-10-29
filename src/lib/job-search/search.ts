@@ -2,7 +2,9 @@ import { z } from "zod";
 
 import { PostingSource } from "@/generated/prisma/enums";
 import { daysBetween, formatShortCalendarDate } from "@/lib/dates";
+import { distanceLabel } from "@/lib/distance";
 import type { PostingFit } from "@/lib/fit";
+import type { Market } from "@/lib/settings";
 
 import { countryCodeFor } from "./countries";
 import { SOURCE_INFO } from "./sources";
@@ -131,9 +133,13 @@ export type PastSearchDay = {
   searches: { id: string; source: JobSource; query: SearchQuery; found: number; time: string }[];
 };
 
-/** "product designer · Hamburg, 25 km · Remote only · Past week": a search in a line, without the km for a source that has no radius. */
-export function describeSearch(query: SearchQuery, countryName: string, source?: JobSource | null): string {
-  const where = query.place ? (source && !SOURCE_INFO[source].radius ? query.place : `${query.place}, ${query.radiusKm} km`) : countryName;
+/**
+ * "product designer · Hamburg, 25 km · Remote only · Past week": a search in
+ * a line, without the distance for a source that has no radius. In the US
+ * market the distance is in miles ("Seattle, 15 mi").
+ */
+export function describeSearch(query: SearchQuery, countryName: string, source?: JobSource | null, market: Market = "INTERNATIONAL"): string {
+  const where = query.place ? (source && !SOURCE_INFO[source].radius ? query.place : `${query.place}, ${distanceLabel(query.radiusKm, market)}`) : countryName;
   const posted = POSTED_WITHIN.find((option) => option.value === query.postedWithin);
   return [query.keywords, where, query.remoteOnly ? "Remote only" : "", posted && posted.value !== "any" ? posted.label : ""].filter(Boolean).join(" · ");
 }

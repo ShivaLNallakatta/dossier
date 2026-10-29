@@ -71,7 +71,7 @@ export const tailorResume: Task<TailorInput, Unit[]> = async (provider, { profil
       truthfulness(options.strict),
       candidateFacts(profile, facts),
       CREATIVITY[options.creativity],
-      languageRule(options.language),
+      languageRule(options.language, options.market),
       UNTRUSTED_POSTING,
       NO_EM_DASHES,
     ),

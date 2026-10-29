@@ -16,6 +16,7 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
       initial={profile}
       section={sectionFromParam(section)}
       order={{ experience: settings.experienceOrder, projects: settings.projectOrder, education: settings.educationOrder }}
+      market={settings.market}
     />
   );
 }

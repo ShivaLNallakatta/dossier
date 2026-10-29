@@ -89,7 +89,7 @@ export const regenerateUnit: Task<RegenerateInput, Unit> = async (provider, inpu
       truthfulness(options.strict),
       candidateFacts(profile, facts),
       CREATIVITY[options.creativity],
-      languageRule(options.language),
+      languageRule(options.language, options.market),
       UNTRUSTED_POSTING,
       NO_EM_DASHES,
     ),

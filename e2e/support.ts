@@ -45,6 +45,8 @@ export function appEnv(): Record<string, string> {
     DOSSIER_AI_MODEL: "fake-model",
     DOSSIER_AI_KEY: "e2e-fake-key",
     // Find jobs searches the fake job sources (E14-9).
+    // The demo data is European (Jane Doe in Rotterdam), so the suite runs the international market.
+    DOSSIER_MARKET: "international",
     DOSSIER_JOBS_SOURCE: "jsearch",
     DOSSIER_JSEARCH_KEY: "e2e-jsearch-key",
     DOSSIER_JOBS_TEST_BASE_URL: `http://localhost:${FAKE_JOBS_PORT}`,

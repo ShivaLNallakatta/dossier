@@ -10,10 +10,12 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { useJob } from "@/hooks/use-job";
 import { openPendingTab, sendPendingTab } from "@/lib/claude-tab";
 import { cn } from "@/lib/cn";
+import { distanceLabel } from "@/lib/distance";
 import { fitBand, type PostingFit } from "@/lib/fit";
 import type { JobView } from "@/lib/jobs/runner";
 import { postedAgo, postingKey, type FoundPosting, type PostingState, type ShownPosting, type StoredSearch } from "@/lib/job-search/search";
 import { arbeitsagenturPage, SOURCE_INFO } from "@/lib/job-search/sources";
+import type { Market } from "@/lib/settings";
 
 import { dismissFoundPosting, loadFullText, restorePosting, savePostingForLater, showMorePostings, startScoringPosting, unsavePosting } from "./actions";
 import { useStartApplication } from "./use-start-application";
@@ -23,6 +25,8 @@ const NARROW = "(max-width: 1023px)";
 
 export type PostingResultsProps = {
   today: string;
+  /** Settings → Documents → Market: how distances are written. */
+  market?: Market;
   /** Score opens a Claude chat, which scores through the connector: it's on, and Dossier has no AI model of its own (#221). */
   scoreInClaude?: boolean;
 } & (
@@ -166,7 +170,7 @@ export function PostingResults(props: PostingResultsProps) {
         : postings.length > 0 || !searched
           ? "You've dismissed every posting here."
           : radius
-            ? `No postings for “${searched.keywords}”${searched.place ? ` within ${searched.radiusKm} km of ${searched.place}` : ""}. Try a bigger radius or fewer words.`
+            ? `No postings for “${searched.keywords}”${searched.place ? ` within ${distanceLabel(searched.radiusKm, props.market ?? "INTERNATIONAL")} of ${searched.place}` : ""}. Try a bigger radius or fewer words.`
             : `No postings for “${searched.keywords}”${searched.place ? ` in ${searched.place}` : ""}. Try fewer words.`;
 
   return (
