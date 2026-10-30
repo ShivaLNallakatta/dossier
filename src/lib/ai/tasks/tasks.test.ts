@@ -283,6 +283,12 @@ describe("tailorResume", () => {
     expect(sent(provider).system).toMatch(/Write everything in Dutch\./);
   });
 
+  it("never lets the model place the candidate where the posting is", async () => {
+    const provider = model(answer);
+    await tailorResume(provider, { profile, extracted, match: null, facts: [], posting }, options);
+    expect(sent(provider).system).toMatch(/Never take a city or state from the posting/);
+  });
+
   it("writes English the American way for the US market, and only then", async () => {
     const system = async (market?: "US" | "INTERNATIONAL") => {
       const provider = model(answer);
