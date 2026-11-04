@@ -79,9 +79,25 @@ describe("ResumeDocument", () => {
     render(<ResumeDocument theme={theme("editorial")} profile={profile} paper="A4" today={today} />);
     const role = screen.getByText("UX Designer").closest("[data-unit]")!;
     expect(role).toHaveAttribute("data-unit", "experience:e3");
-    expect(role).toHaveTextContent("UX Designer, Studio BrikSep 2015 – May 2018");
+    expect(role).toHaveTextContent("UX Designer, Studio Brik · RotterdamSep 2015 – May 2018");
     expect(role).toHaveTextContent("Skills · HTML & CSS, Interaction design");
     expect(screen.getByText("Thesis on trust in automated scheduling tools")).toBeInTheDocument();
+  });
+
+  it("shows where each role was after the company, and the location alone without one", () => {
+    const withoutCompany = { ...profile, experience: [{ ...profile.experience[2], company: "" }] };
+    const { unmount } = render(<ResumeDocument theme={theme("editorial")} profile={profile} paper="A4" today={today} />);
+    expect(screen.getAllByText("· Rotterdam", { exact: false, selector: "span" })).toHaveLength(2);
+    expect(screen.getByText("· Amsterdam", { exact: false, selector: "span" })).toBeInTheDocument();
+    unmount();
+    render(<ResumeDocument theme={theme("editorial")} profile={withoutCompany} paper="A4" today={today} />);
+    expect(screen.getByText("UX Designer").closest("[data-unit]")).toHaveTextContent("UX Designer, RotterdamSep 2015 – May 2018");
+  });
+
+  it("leaves the skills off each role and project when that's turned off, keeping the Skills section", () => {
+    render(<ResumeDocument theme={theme("editorial")} profile={profile} paper="A4" today={today} roleSkills={false} />);
+    expect(screen.queryByText(/^Skills · /)).not.toBeInTheDocument();
+    expect(sectionTitles()).toContain("Skills");
   });
 
   it("writes its headings, dates, levels and age in the document's language", () => {

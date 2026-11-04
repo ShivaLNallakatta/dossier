@@ -89,7 +89,23 @@ export function ResumeDocument({ theme, profile, paper, layout, language, render
             {renderUnit({
               id: `experience:${role.id}`,
               className: styles.entry,
-              head: <EntryHead title={role.role} at={role.company} dates={role.dates} timeline={resolved.timeline} />,
+              head: (
+                <EntryHead
+                  title={role.role}
+                  at={
+                    role.location ? (
+                      <>
+                        {role.company}
+                        <span className={styles.muted}>{`${role.company ? " · " : ""}${role.location}`}</span>
+                      </>
+                    ) : (
+                      role.company
+                    )
+                  }
+                  dates={role.dates}
+                  timeline={resolved.timeline}
+                />
+              ),
               children: (
                 <>
                   {role.descriptor && <p className={styles.descriptor}>{role.descriptor}</p>}

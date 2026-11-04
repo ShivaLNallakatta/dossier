@@ -20,6 +20,7 @@ export default async function BaseResumePage() {
       baseThemeId={settings.baseThemeId}
       paper={settings.paper}
       includeReferences={settings.includeRefs}
+      roleSkills={settings.roleSkills}
       language={settings.resumeLanguage}
       maxPages={maxPages(settings.pageLimit)}
     />

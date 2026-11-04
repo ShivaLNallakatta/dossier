@@ -18,6 +18,8 @@ export type ResumeContent = {
     id: string;
     role: string;
     company: string;
+    /** Where the role was, e.g. "Redmond, WA", as written; never tailored. */
+    location: string;
     /** A line about the company or the role (#257), as written; never tailored. */
     descriptor: string;
     dates: string;
@@ -58,6 +60,8 @@ export type ResumeOptions = {
   units?: Unit[];
   /** Settings → "Include references" (SET-9). */
   includeReferences?: boolean;
+  /** Settings → "Skills under each role": the "Skills ·" line under roles and projects; on unless turned off. */
+  roleSkills?: boolean;
   /** An application's Photo switch (#224); null or left out follows the profile's "Show on resumes". */
   showPhoto?: boolean | null;
   /** For "Age N"; defaults to now. */
@@ -114,7 +118,7 @@ function restatesDegree(notes: string, entry: { degree: string; school: string }
 /** What the resume shows, with its dates and levels in the words of `labels`. */
 export function resumeContent(
   profile: ProfileData,
-  { units, includeReferences = false, showPhoto, today = new Date() }: ResumeOptions = {},
+  { units, includeReferences = false, roleSkills = true, showPhoto, today = new Date() }: ResumeOptions = {},
   labels: DocumentLabels = ENGLISH_LABELS,
 ): ResumeContent {
   const { basics } = profile;
@@ -125,6 +129,7 @@ export function resumeContent(
     id: entry.id,
     role: entry.role.trim(),
     company: entry.company.trim(),
+    location: entry.location.trim(),
     descriptor: entry.descriptor.trim(),
     dates: formatDateRange(entry, dates),
     bullets: lines(bullets),
@@ -206,6 +211,13 @@ export function resumeContent(
   content.projects = content.projects.filter((project) => project.name || project.link || project.bullets.length > 0 || project.skills.length > 0);
   content.education = content.education.filter((entry) => entry.degree || entry.school || entry.notes);
   content.references = content.references.filter((reference) => reference.name || reference.role || reference.contact);
+
+  // With "Skills under each role" off, the skills stay in the Skills section
+  // only, instead of being listed again under every role and project.
+  if (!roleSkills) {
+    content.experience = content.experience.map((role) => ({ ...role, skills: [] }));
+    content.projects = content.projects.map((project) => ({ ...project, skills: [] }));
+  }
 
   return content;
 }

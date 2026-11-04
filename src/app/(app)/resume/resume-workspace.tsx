@@ -30,6 +30,8 @@ export type ResumeWorkspaceProps = {
   baseThemeId: string;
   paper: PaperSize;
   includeReferences: boolean;
+  /** Settings → "Skills under each role"; on unless turned off. */
+  roleSkills?: boolean;
   /** Settings → "Resume length" (SET-9): the most pages a tailored resume may have, or null for no limit. */
   maxPages: number | null;
   /** Settings → "Base resume language", for its headings and dates; null for English. */
@@ -44,7 +46,7 @@ type Panel = "themes" | "customize";
  * shows it right away and saves it in the background; while you customise
  * one, the preview shows the draft.
  */
-export function ResumeWorkspace({ profile, themes: initialThemes, usage, baseThemeId, paper, includeReferences, maxPages, language }: ResumeWorkspaceProps) {
+export function ResumeWorkspace({ profile, themes: initialThemes, usage, baseThemeId, paper, includeReferences, roleSkills = true, maxPages, language }: ResumeWorkspaceProps) {
   const [themes, setThemes] = useState(initialThemes);
   const [baseId, setBaseId] = useState(baseThemeId);
   const [panel, setPanel] = useState<Panel>("themes");
@@ -194,7 +196,14 @@ export function ResumeWorkspace({ profile, themes: initialThemes, usage, baseThe
             )
           }
         >
-          <ResumeDocument theme={theme} profile={profile} paper={paper} includeReferences={includeReferences} language={language} />
+          <ResumeDocument
+            theme={theme}
+            profile={profile}
+            paper={paper}
+            includeReferences={includeReferences}
+            roleSkills={roleSkills}
+            language={language}
+          />
         </DocumentPreview>
         <aside
           ref={panelArea}

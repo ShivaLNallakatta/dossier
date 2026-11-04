@@ -27,6 +27,7 @@ const initial: DocumentSettings = {
   customLanguages: ["Farsi"],
   fileNamePattern: "{name} – {company} – {doc}",
   includeRefs: false,
+  roleSkills: true,
   pageLimit: "1",
 };
 const preview = { name: "Jane Doe", company: "Ledgerly", role: "Senior Product Designer" };
@@ -82,6 +83,8 @@ describe("Documents settings (E10-3)", () => {
     expect(updateSettings).toHaveBeenLastCalledWith({ docLanguage: null });
     await user.click(screen.getByRole("switch", { name: "Include references" }));
     expect(updateSettings).toHaveBeenLastCalledWith({ includeRefs: true });
+    await user.click(screen.getByRole("switch", { name: "Skills under each role" }));
+    expect(updateSettings).toHaveBeenLastCalledWith({ roleSkills: false });
   });
 
   it("limits resumes to one page, two pages or no limit (SET-9)", async () => {

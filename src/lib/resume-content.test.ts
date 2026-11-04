@@ -47,11 +47,21 @@ describe("resumeContent", () => {
     ]);
     expect(content.experience[0].bullets).toHaveLength(3);
     expect(content.experience[2].skills).toEqual(["HTML & CSS", "Interaction design"]);
+    expect(content.experience.map((role) => role.location)).toEqual(["Rotterdam", "Amsterdam", "Rotterdam"]);
     expect(content.education[0]).toMatchObject({ dates: "2013 – 2015", notes: "Thesis on trust in automated scheduling tools" });
     expect(content.skills).toBe(
       "Interaction design · Design systems · Prototyping · User research · Figma · HTML & CSS · Workshop facilitation",
     );
     expect(content.languages).toBe("Dutch: Native · English: Fluent (C2) · German: Intermediate (B1)");
+  });
+
+  it("leaves the skills off roles and projects with \"Skills under each role\" off, but keeps the Skills section", () => {
+    const content = resumeContent(profile, { roleSkills: false });
+    expect(content.experience.every((role) => role.skills.length === 0)).toBe(true);
+    expect(content.projects.map((project) => project.skills)).toEqual([[]]);
+    expect(content.skills).toMatch(/^Interaction design · /);
+    // On by default.
+    expect(resumeContent(profile).experience[2].skills).toEqual(["HTML & CSS", "Interaction design"]);
   });
 
   it("includes references only when asked", () => {

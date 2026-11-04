@@ -77,6 +77,8 @@ export async function loadDocuments(id: string) {
     email: documentData(DocumentKind.EMAIL)?.units ?? null,
     /** Settings → "Include references", when the posting asks for them (SET-9). */
     includeReferences: settings.includeRefs && extracted?.asksForReferences === true,
+    /** Settings → "Skills under each role". */
+    roleSkills: settings.roleSkills,
     /** Dated the day it was sent; until then, today. */
     letterDate: calendarDay(application.sentAt ?? undefined),
   };
