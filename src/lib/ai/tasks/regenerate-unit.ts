@@ -16,6 +16,7 @@ import {
   COVER_LETTER_APPROACH,
   CREATIVITY,
   jobForPrompt,
+  KEY_POINTS,
   languageRule,
   NO_EM_DASHES,
   profileForPrompt,
@@ -82,6 +83,8 @@ export const regenerateUnit: Task<RegenerateInput, Unit> = async (provider, inpu
           : ""
       }`,
       // The letter's greeting and address block aren't where its argument goes.
+      // A role's or project's new bullets keep its key points (★) too.
+      kind === DocumentKind.RESUME && bullets && KEY_POINTS,
       kind === DocumentKind.COVER_LETTER && !isFrameUnit(unit.id) && COVER_LETTER_APPROACH,
       kind !== DocumentKind.RESUME && `Tone: ${TONES[tone].label}. ${TONES[tone].description}`,
       kind === DocumentKind.COVER_LETTER && FRAME_PARTS[unit.id],

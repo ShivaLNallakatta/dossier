@@ -156,6 +156,43 @@ export type ProfileData = {
   facts: FactItem[];
 };
 
+/**
+ * A key point: a bullet starting with ★ in a role or project. It's a result
+ * the candidate wants on every resume, so tailoring always keeps it, and the
+ * ★ itself never shows on a document.
+ */
+export const KEY_POINT_MARK = "★";
+
+/** Whether a bullet is marked as a key point ("★ Grew revenue 3%"). */
+export const isKeyPoint = (line: string) => line.trimStart().startsWith(KEY_POINT_MARK);
+
+/** A bullet without its key-point mark. */
+export const withoutKeyMark = (line: string) => (isKeyPoint(line) ? line.trimStart().slice(KEY_POINT_MARK.length).trim() : line.trim());
+
+/** A role's or project's bullets, one per line, trimmed, without empty lines or key-point marks. */
+export const bulletList = (bullets: string) => bullets.split("\n").map(withoutKeyMark).filter(Boolean);
+
+/** The key points among a role's or project's bullets, without their marks. */
+export const keyPoints = (bullets: string) => bullets.split("\n").filter(isKeyPoint).map(withoutKeyMark).filter(Boolean);
+
+/**
+ * Marks the line the caret is on as a key point, or unmarks it, keeping the
+ * caret on the same text. Returns the new text and caret.
+ */
+export function toggleKeyPoint(text: string, caret: number): { text: string; caret: number } {
+  const start = text.lastIndexOf("\n", Math.max(0, caret - 1)) + 1;
+  const end = text.indexOf("\n", start);
+  const line = text.slice(start, end === -1 ? undefined : end);
+  const rest = end === -1 ? "" : text.slice(end);
+  if (isKeyPoint(line)) {
+    const bare = withoutKeyMark(line);
+    const removed = line.length - bare.length;
+    return { text: text.slice(0, start) + bare + rest, caret: Math.max(start, caret - removed) };
+  }
+  const mark = `${KEY_POINT_MARK} `;
+  return { text: text.slice(0, start) + mark + line.trimStart() + rest, caret: caret + mark.length };
+}
+
 /** The facts worth sending: trimmed, without empty ones. */
 export function factTexts(facts: { text: string }[]): string[] {
   return facts.map((fact) => fact.text.trim()).filter(Boolean);

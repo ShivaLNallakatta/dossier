@@ -1,7 +1,7 @@
 import type { Unit } from "@/lib/application-data";
 import { ageLabel, ENGLISH_LABELS, languagesLine, type DocumentLabels } from "@/lib/document-labels";
 import { publicationHref, publicationLink } from "@/lib/citation";
-import { ageOn, formatDateRange, resumePublications, type Basics, type ProfileData } from "@/lib/profile";
+import { ageOn, bulletList, formatDateRange, resumePublications, type Basics, type ProfileData } from "@/lib/profile";
 
 // What a resume shows, worked out from the profile (the base resume) or from
 // a tailored document's units, so the renderer only has to lay it out.
@@ -94,11 +94,8 @@ export const displayLink = (link: string) =>
     .replace(/^www\./i, "")
     .replace(/\/$/, "");
 
-const lines = (text: string) =>
-  text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
+/** One bullet per line, without empty ones or key-point marks (★), which never show on a resume. */
+const lines = (text: string) => bulletList(text);
 
 const words = (text: string) => text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
 

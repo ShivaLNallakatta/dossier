@@ -15,6 +15,9 @@ import {
   LANGUAGE_LEVELS,
   languageLevelLabel,
   profileStrength,
+  bulletList,
+  keyPoints,
+  toggleKeyPoint,
   type DateSpan,
 } from "./profile";
 
@@ -190,3 +193,16 @@ describe("inEntryOrder (E4-9)", () => {
   });
 });
 
+describe("key points (★)", () => {
+  it("lists the bullets without their marks, and the key points on their own", () => {
+    expect(bulletList(" ★ Grew revenue 3% \n\n Led the team ")).toEqual(["Grew revenue 3%", "Led the team"]);
+    expect(keyPoints("Led the team\n★ Grew revenue 3%\n★  ")).toEqual(["Grew revenue 3%"]);
+  });
+
+  it("marks and unmarks the line the caret is on, keeping the caret on its text", () => {
+    expect(toggleKeyPoint("one\ntwo\nthree", 5)).toEqual({ text: "one\n★ two\nthree", caret: 7 });
+    expect(toggleKeyPoint("one\n★ two\nthree", 7)).toEqual({ text: "one\ntwo\nthree", caret: 5 });
+    expect(toggleKeyPoint("", 0)).toEqual({ text: "★ ", caret: 2 });
+    expect(toggleKeyPoint("one", 3)).toEqual({ text: "★ one", caret: 5 });
+  });
+});

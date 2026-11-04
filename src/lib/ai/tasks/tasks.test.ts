@@ -9,6 +9,7 @@ import type { ChatCall } from "../provider";
 import { MockProvider } from "../providers/mock";
 
 import { isoDate } from "./extract-posting";
+import { coversKeyPoint, withKeyPoints } from "./tailor-resume";
 import { sameSkill } from "./match-requirements";
 import { COVER_LETTER_APPROACH } from "./prompt-parts";
 import { withoutFrame } from "./write-cover-letter";
@@ -217,7 +218,7 @@ describe("tailorResume", () => {
 
   it("returns units, keeping only real roles and the profile's own skills (APP-4)", async () => {
     const { data, promptVersion } = await tailorResume(model(answer), { profile, extracted, match: null, facts: [], posting }, options);
-    expect(promptVersion).toBe("tailor-resume@7");
+    expect(promptVersion).toBe("tailor-resume@8");
     expect(data.map((unit) => unit.id)).toEqual([
       "summary",
       "experience:e1",
@@ -240,6 +241,33 @@ describe("tailorResume", () => {
     expect(data.find((unit) => unit.id === "experience:e2")?.text).toBe(profile.experience[1].bullets);
     expect(data.find((unit) => unit.id === "skills")?.text).toBe("Design systems · Figma · User research");
     expect(data.find((unit) => unit.id === "languages")?.text).toBe("Dutch: Native · English: Fluent (C2) · German: Intermediate (B1)");
+  });
+
+  it("keeps the key points (★) on every tailored resume, sending them to the model and putting back any it left out", async () => {
+    const [e1, ...rest] = profile.experience;
+    const marked = {
+      ...profile,
+      experience: [{ ...e1, bullets: "Led the redesign of the carrier portal used daily by 4,000+ dispatchers\n★ Cut dispatcher onboarding from 5 days to 2 hours\nMentored three junior designers" }, ...rest],
+    };
+    const provider = model(answer);
+    const { data } = await tailorResume(provider, { profile: marked, extracted, match: null, facts: [], posting }, options);
+    const text = prompt(provider);
+    expect(text).toContain('"keyPoints": [\n        "Cut dispatcher onboarding from 5 days to 2 hours"');
+    expect(text).toMatch(/Always include each one among that role's or project's bullets, first/);
+    // The ★ never reaches the model's bullets or the resume.
+    expect(text).not.toContain("★");
+    expect(data.find((unit) => unit.id === "experience:e1")?.text).toBe(
+      "Cut dispatcher onboarding from 5 days to 2 hours\nLed the carrier portal redesign\nOwned the design system",
+    );
+  });
+
+  it("counts a key point as kept when a bullet keeps its numbers and most of its words", () => {
+    const point = "Built Credit Adjustment and BYOL models that improved Azure revenue by 2–3% annually";
+    expect(coversKeyPoint("Improved Azure revenue 2–3% a year with Credit Adjustment and BYOL models", point)).toBe(true);
+    expect(coversKeyPoint("Built Credit Adjustment and BYOL models that improved Azure revenue", point)).toBe(false);
+    expect(coversKeyPoint("Led security remediation of 300+ vulnerabilities in 3 weeks", point)).toBe(false);
+    expect(withKeyPoints(["Led security remediation"], [point])).toEqual([point, "Led security remediation"]);
+    expect(withKeyPoints(["Improved Azure revenue 2–3% a year with Credit Adjustment and BYOL models"], [point])).toHaveLength(1);
   });
 
   it("copies the publications word for word, and sends their text but never their links (#218)", async () => {

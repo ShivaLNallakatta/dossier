@@ -2,7 +2,7 @@ import type { Creativity } from "@/generated/prisma/enums";
 import type { Market } from "@/lib/settings";
 import type { Extracted, Match } from "@/lib/application-data";
 import { citationText } from "@/lib/citation";
-import { factTexts, formatDateRange, languageLevelLabel, resumePublications, type ProfileData } from "@/lib/profile";
+import { bulletList, factTexts, formatDateRange, keyPoints, languageLevelLabel, resumePublications, type ProfileData } from "@/lib/profile";
 
 import type { AIProvider } from "../provider";
 
@@ -59,7 +59,9 @@ export function profileForPrompt(profile: ProfileData, { includeReferences = fal
         // As written: a fact about the employer, like its name (#257).
         ...(entry.descriptor.trim() ? { about: entry.descriptor.trim() } : {}),
         dates: formatDateRange(entry),
-        bullets: entry.bullets.split("\n").map((line) => line.trim()).filter(Boolean),
+        bullets: bulletList(entry.bullets),
+        // The results marked ★ in the profile, which every resume keeps (KEY_POINTS).
+        ...(keyPoints(entry.bullets).length > 0 ? { keyPoints: keyPoints(entry.bullets) } : {}),
         skillsUsed: entry.skillIds.flatMap((id) => skillNames.get(id) ?? []),
       })),
       // A project's link is left out like the other links: the resume shows it as it is.
@@ -67,7 +69,8 @@ export function profileForPrompt(profile: ProfileData, { includeReferences = fal
         id: entry.id,
         name: entry.name,
         dates: formatDateRange(entry),
-        bullets: entry.bullets.split("\n").map((line) => line.trim()).filter(Boolean),
+        bullets: bulletList(entry.bullets),
+        ...(keyPoints(entry.bullets).length > 0 ? { keyPoints: keyPoints(entry.bullets) } : {}),
         skillsUsed: entry.skillIds.flatMap((id) => skillNames.get(id) ?? []),
       })),
       education: profile.education.map((entry) => ({
@@ -146,6 +149,10 @@ function truthRule(strict: boolean): string {
 }
 
 /** House style for everything the model writes. */
+/** For tasks that write a role's or project's bullets: the candidate's key points stay on every resume. */
+export const KEY_POINTS =
+  "Some roles and projects have keyPoints: the candidate's most important results, which go on every resume. Always include each one among that role's or project's bullets, first, keeping its numbers, names and meaning exactly; you may only tighten the wording. They count toward its number of bullets.";
+
 export const NO_EM_DASHES = "Never use em-dashes (\u2014). Use a comma, colon, full stop or parentheses instead.";
 
 /** SET-3, as wording, for every provider. */

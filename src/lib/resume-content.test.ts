@@ -64,6 +64,12 @@ describe("resumeContent", () => {
     expect(resumeContent(profile).experience[2].skills).toEqual(["HTML & CSS", "Interaction design"]);
   });
 
+  it("never shows the key-point mark (★) on a resume", () => {
+    const [e1, ...rest] = profile.experience;
+    const marked = { ...profile, experience: [{ ...e1, bullets: "★ Cut onboarding from 5 days to 2 hours\nLed the redesign" }, ...rest] };
+    expect(resumeContent(marked).experience[0].bullets).toEqual(["Cut onboarding from 5 days to 2 hours", "Led the redesign"]);
+  });
+
   it("includes references only when asked", () => {
     expect(resumeContent(profile).references).toEqual([]);
     expect(resumeContent(profile, { includeReferences: true }).references[0]).toEqual({

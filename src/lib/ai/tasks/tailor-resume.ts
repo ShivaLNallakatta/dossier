@@ -3,7 +3,7 @@ import { z } from "zod";
 import { unitsSchema, type Extracted, type Match, type Unit } from "@/lib/application-data";
 import { publicationLabel } from "@/lib/citation";
 import { documentLabels, ENGLISH_LABELS, languagesLine, type DocumentLabels } from "@/lib/document-labels";
-import { resumePublications, sameName, type ProfileData } from "@/lib/profile";
+import { bulletList, keyPoints, resumePublications, sameName, type ProfileData } from "@/lib/profile";
 
 import { guardSources, guardUnits } from "../fact-guard";
 
@@ -12,6 +12,7 @@ import {
   candidateFacts,
   CREATIVITY,
   jobForPrompt,
+  KEY_POINTS,
   languageRule,
   NO_EM_DASHES,
   profileForPrompt,
@@ -21,7 +22,7 @@ import {
   type Task,
 } from "./prompt-parts";
 
-export const TAILOR_RESUME_VERSION = "tailor-resume@7";
+export const TAILOR_RESUME_VERSION = "tailor-resume@8";
 
 const answerSchema = z.object({
   summary: z.string(),
@@ -67,6 +68,7 @@ export const tailorResume: Task<TailorInput, Unit[]> = async (provider, { profil
   const answer = await provider.complete({
     system: system(
       INSTRUCTIONS,
+      KEY_POINTS,
       pageFit(options.maxPages),
       truthfulness(options.strict),
       candidateFacts(profile, facts),
@@ -104,7 +106,8 @@ export const tailorResume: Task<TailorInput, Unit[]> = async (provider, { profil
 /**
  * Turns the answer into units, trusting nothing: unknown roles, projects and
  * degrees are dropped, skills must be the profile's own, and a role or
- * project the model skipped keeps its bullets from the profile. The publications and languages
+ * project the model skipped keeps its bullets from the profile, and a key point (★) the model
+ * left out goes back in, first (withKeyPoints). The publications and languages
  * come from the profile, publications word for word (#218), and languages with their levels in
  * the words of `labels`.
  */
@@ -118,11 +121,11 @@ export function resumeUnits(profile: ProfileData, answer: z.infer<typeof answerS
   const units: Unit[] = [
     { id: "summary", label: "Summary", text: answer.summary.trim() },
     ...profile.experience.map((entry) => {
-      const bullets = (roles.get(entry.id) ?? entry.bullets.split("\n")).map((line) => line.trim()).filter(Boolean);
+      const bullets = withKeyPoints(roles.get(entry.id) ?? bulletList(entry.bullets), keyPoints(entry.bullets));
       return { id: `experience:${entry.id}`, label: `${entry.company || entry.role} role`, text: bullets.join("\n") };
     }),
     ...profile.projects.map((entry) => {
-      const bullets = (projects.get(entry.id) ?? entry.bullets.split("\n")).map((line) => line.trim()).filter(Boolean);
+      const bullets = withKeyPoints(projects.get(entry.id) ?? bulletList(entry.bullets), keyPoints(entry.bullets));
       return { id: `project:${entry.id}`, label: `${entry.name || "Untitled"} project`, text: bullets.join("\n") };
     }),
     { id: "skills", label: "Skills", text: skills.join(" · ") },
@@ -143,4 +146,35 @@ export function resumeUnits(profile: ProfileData, answer: z.infer<typeof answerS
     },
   ];
   return unitsSchema.parse(units);
+}
+
+/** Lower-case words and numbers, for comparing a bullet with a key point. */
+const tokens = (text: string) => text.toLowerCase().match(/[\p{L}\p{N}$%.,+]+/gu)?.map((word) => word.replace(/[.,]+$/, "")) ?? [];
+/** The numbers in a text, "$20M", "2–3%" and "4.5" included: a key point's figures have to survive. */
+const numbers = (text: string): string[] => text.match(/\d+(?:[.,]\d+)?/g) ?? [];
+const SMALL_WORDS = new Set(["a", "an", "the", "and", "or", "of", "to", "in", "on", "for", "by", "with", "at", "from", "as", "its", "their"]);
+
+/**
+ * Whether a bullet says what a key point says: it keeps every number of the
+ * key point, and most of its words. A tightened rewording counts; a bullet
+ * about something else doesn't.
+ */
+export function coversKeyPoint(bullet: string, point: string): boolean {
+  const said = tokens(bullet);
+  if (!numbers(point).every((figure) => numbers(bullet).includes(figure))) return false;
+  const words = [...new Set(tokens(point).filter((word) => !SMALL_WORDS.has(word)))];
+  if (words.length === 0) return true;
+  const kept = words.filter((word) => said.some((other) => other === word || (word.length > 4 && other.startsWith(word.slice(0, 5)))));
+  return kept.length / words.length >= 0.6;
+}
+
+/**
+ * A role's or project's bullets with its key points in them: each one the
+ * model didn't keep goes back in, as written, ahead of the rest. Page
+ * trimming cuts from the end, so they're the last to go.
+ */
+export function withKeyPoints(bullets: string[], points: string[]): string[] {
+  const lines = bullets.map((line) => line.trim()).filter(Boolean);
+  const missing = points.filter((point) => !lines.some((line) => coversKeyPoint(line, point)));
+  return [...missing, ...lines];
 }
