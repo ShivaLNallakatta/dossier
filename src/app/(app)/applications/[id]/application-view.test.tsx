@@ -27,9 +27,11 @@ import {
   setFollowThemeLayout,
   setShowPhoto,
   startRegenerating,
+  startRewritingResume,
   startWritingEmail,
   undoEmailRewrite,
   undoMessage,
+  undoResumeRewrite,
   updateNote,
 } from "./actions";
 import { ApplicationView, type ApplicationViewProps } from "./application-view";
@@ -55,6 +57,8 @@ vi.mock("./actions", () => ({
   restoreVersion: vi.fn(async () => ({ ok: true, data: null, toast: "Restored the resume as it was then." })),
   startWritingEmail: vi.fn(async () => ({ ok: true, data: "email-1" })),
   undoEmailRewrite: vi.fn(async () => ({ ok: true, data: null })),
+  startRewritingResume: vi.fn(async () => ({ ok: true, data: "resume-1" })),
+  undoResumeRewrite: vi.fn(async () => ({ ok: true, data: null })),
 }));
 vi.mock("@/lib/copy-text", () => ({ copyText: vi.fn(async () => true) }));
 vi.mock("@/lib/jobs/actions", () => ({ retry: vi.fn(async () => ({ ok: true, data: null })) }));
@@ -138,6 +142,8 @@ beforeEach(() => {
   vi.mocked(undoMessage).mockClear();
   vi.mocked(startWritingEmail).mockClear();
   vi.mocked(undoEmailRewrite).mockClear();
+  vi.mocked(startRewritingResume).mockClear();
+  vi.mocked(undoResumeRewrite).mockClear();
   vi.mocked(toast).mockClear();
   router.refresh.mockClear();
   router.push.mockClear();
@@ -149,7 +155,7 @@ describe("the document tabs (E8-2)", () => {
   it("has Resume, Cover letter, Email and the posting with its match", () => {
     render(<ApplicationView {...props} />);
     const tabs = within(screen.getByRole("tablist", { name: "Application" })).getAllByRole("tab");
-    expect(tabs.map((tab) => tab.textContent)).toEqual(["Resume", "Cover letter", "Email", "Job posting · 5/7 match", "Notes"]);
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Resume", "Cover letter", "Email", "Job posting · 71% match", "Notes"]);
     expect(screen.getByRole("tab", { name: "Resume" })).toHaveAttribute("aria-selected", "true");
   });
 
@@ -1039,5 +1045,42 @@ describe("the Email tab", () => {
     await user.click(screen.getByRole("button", { name: "History" }));
     expect(await screen.findByRole("heading", { name: "History of the email" })).toBeInTheDocument();
     expect(listVersions).toHaveBeenLastCalledWith({ id: "app-1", document: "EMAIL" });
+  });
+});
+
+describe("writing the resume again", () => {
+  const toastAction = () => vi.mocked(toast).mock.lastCall?.[1]?.action;
+
+  it("writes it again in the background, says what was trimmed, and offers Undo", async () => {
+    const user = userEvent.setup();
+    render(<ApplicationView {...props} />);
+    await user.click(screen.getByRole("button", { name: "Write again" }));
+    expect(startRewritingResume).toHaveBeenCalledWith({ id: "app-1" });
+    expect(screen.getByRole("button", { name: "Writing again…" })).toHaveAttribute("aria-disabled", "true");
+
+    const units = demoResumeUnits();
+    report({ id: "resume-1", type: "rewrite-resume", status: "DONE", result: { units, previous: units, trimmed: ["Shortened the Fieldnote role by 1 bullet to fit two pages"] } });
+    expect(router.refresh).toHaveBeenCalled();
+    expect(toast).toHaveBeenLastCalledWith(
+      "Wrote the resume again from your profile as it is now. Shortened the Fieldnote role by 1 bullet to fit two pages.",
+      { action: expect.objectContaining({ label: "Undo" }) },
+    );
+    await act(async () => toastAction()?.onClick());
+    expect(undoResumeRewrite).toHaveBeenCalledWith({ id: "app-1", jobId: "resume-1" });
+  });
+
+  it("suggests writing it again when an older release wrote it", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<ApplicationView {...props} />);
+    expect(screen.queryByText(/Dossier writes resumes better since this one was written/)).not.toBeInTheDocument();
+    rerender(<ApplicationView {...props} resumeOutdated />);
+    expect(screen.getByRole("note")).toHaveTextContent("Dossier writes resumes better since this one was written");
+    await user.click(screen.getByRole("button", { name: "Write it again" }));
+    expect(startRewritingResume).toHaveBeenCalledWith({ id: "app-1" });
+  });
+
+  it("keeps writing one started before a reload", () => {
+    render(<ApplicationView {...props} writingResume="resume-7" />);
+    expect(screen.getByRole("button", { name: "Writing again…" })).toBeInTheDocument();
   });
 });

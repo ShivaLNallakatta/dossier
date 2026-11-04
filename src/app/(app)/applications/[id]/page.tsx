@@ -11,6 +11,8 @@ import { refineJobKey } from "@/lib/jobs/refine";
 import { regenerateUnitJob, unitJobKey } from "@/lib/jobs/regenerate-unit";
 import { findUnfinishedJobs } from "@/lib/jobs/runner";
 import { emailJobKey } from "@/lib/jobs/write-email";
+import { resumeJobKey } from "@/lib/jobs/rewrite-resume";
+import { TAILOR_RESUME_VERSION } from "@/lib/ai/tasks/tailor-resume";
 import { googleConnection } from "@/lib/google/account";
 import { pullInterviewEvents } from "@/lib/google/availability";
 import { loadConversation } from "@/lib/google/inbox-data";
@@ -40,13 +42,14 @@ export async function generateMetadata({ params }: PageProps<"/applications/[id]
 export default async function ApplicationPage({ params, searchParams }: PageProps<"/applications/[id]">) {
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   await pullCalendar(id);
-  const [{ application, profile, settings, extracted, resume, letter, email, includeReferences, roleSkills, letterDate }, aiReady, unitJobs, refineJobs, emailJobs, timeZone, google, emails, themes] =
+  const [{ application, profile, settings, extracted, resume, letter, email, includeReferences, roleSkills, resumeWrittenWith, letterDate }, aiReady, unitJobs, refineJobs, emailJobs, resumeJobs, timeZone, google, emails, themes] =
     await Promise.all([
       loadDocuments(id),
       isAiConfigured(),
       findUnfinishedJobs(unitJobKey(id)),
       findUnfinishedJobs(refineJobKey(id)),
       findUnfinishedJobs(emailJobKey(id)),
+      findUnfinishedJobs(resumeJobKey(id)),
       userTimeZone(),
       googleConnection(),
       loadConversation(id),
@@ -111,6 +114,9 @@ export default async function ApplicationPage({ params, searchParams }: PageProp
       baseThemeId={settings.baseThemeId}
       email={email}
       writingEmail={emailJobs.at(-1)?.id ?? null}
+      writingResume={resumeJobs.at(-1)?.id ?? null}
+      // Written before this release's resume writing (key points and the rest): worth writing again.
+      resumeOutdated={resumeWrittenWith !== null && resumeWrittenWith !== TAILOR_RESUME_VERSION}
       attachments={{ resume: resume ? fileName("RESUME") : null, letter: letter ? fileName("COVER_LETTER") : null }}
       gmail={
         google.status === "not-configured" && emails.length === 0

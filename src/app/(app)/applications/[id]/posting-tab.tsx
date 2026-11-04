@@ -5,8 +5,9 @@ import { useId } from "react";
 
 import { FactList } from "@/components/fact-list";
 import { MatchRows } from "@/components/match-rows";
-import type { Match, Requirement } from "@/lib/application-data";
+import type { Match, Requirement, Unit } from "@/lib/application-data";
 import type { FactItem } from "@/lib/profile";
+import { resumeMatch } from "@/lib/resume-match";
 
 import { sectionHref } from "../../profile/sections";
 
@@ -42,16 +43,20 @@ export function PostingTab({
   onAddSkill,
   facts,
   setFacts,
+  resumeUnits = null,
 }: {
   applicationId: string;
   posting: PostingData;
   match: Match | null;
   requirements: Requirement[];
+  /** The tailored resume as it is now, edits included, for "Resume match"; null without one. */
+  resumeUnits?: Unit[] | null;
   onAddSkill: (index: number, skill: string) => void;
   facts: FactItem[];
   setFacts: (change: (facts: FactItem[]) => FactItem[]) => void;
 }) {
   const factsHint = useId();
+  const resume = resumeMatch(resumeUnits, requirements);
   return (
     <div className="@container flex flex-1 flex-col items-center gap-4 overflow-auto bg-canvas px-10 pt-11 pb-16">
       <section
@@ -100,6 +105,21 @@ export function PostingTab({
         <span>Pasted {posting.pasted}</span>
       </div>
       <div className="flex w-full max-w-[640px] flex-col gap-[22px] rounded-panel border border-line-card bg-card px-[30px] py-7">
+        {resume && (
+          <section aria-label="Resume match" className="flex flex-col gap-1.5 border-b border-line pb-5">
+            <h2 className="flex items-baseline justify-between gap-3 text-[15px] font-medium">
+              Resume match
+              <span className="text-sm tabular-nums">
+                {resume.percent}% · {resume.hit}/{resume.total}
+              </span>
+            </h2>
+            <p className="text-sm text-pretty text-muted">
+              {resume.missing.length === 0
+                ? "Your tailored resume mentions every requirement in the posting."
+                : `Your tailored resume mentions ${resume.hit} of the posting's ${resume.total} requirements. Not in it yet: ${resume.missing.join(", ")}.`}
+            </p>
+          </section>
+        )}
         {match && match.items.length > 0 && <MatchRows match={match} requirements={requirements} onAddSkill={onAddSkill} />}
         <div className={match && match.items.length > 0 ? "flex flex-col gap-2.5 border-t border-line pt-5" : "flex flex-col gap-2.5"}>
           <h2 className="text-[15px] font-medium">Original posting</h2>

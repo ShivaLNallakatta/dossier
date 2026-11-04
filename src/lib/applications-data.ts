@@ -1,10 +1,11 @@
 import "server-only";
 
-import type { ApplicationStatus } from "@/generated/prisma/enums";
-import { matchSchema, matchScore } from "@/lib/application-data";
+import { DocumentKind, type ApplicationStatus } from "@/generated/prisma/enums";
+import { extractedSchema, matchSchema, matchScore, unitsSchema, type MatchSummary } from "@/lib/application-data";
 import { sortRows, updatedAgo, type Sort } from "@/lib/applications-list";
 import { formatCalendarDate, formatShortDate } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { resumeMatch, type ResumeMatch } from "@/lib/resume-match";
 
 /** An application as the board and the table show it (E9-2, E9-3). */
 export type ApplicationRow = {
@@ -18,7 +19,10 @@ export type ApplicationRow = {
   archived: boolean;
   /** "Apply by" on draft cards, e.g. "3 Oct 2026". */
   deadline: string | null;
-  match: { hit: number; total: number } | null;
+  /** Requirements covered (5/7) and the match percentage, or null when not matched. */
+  match: MatchSummary | null;
+  /** How much of the posting the tailored resume mentions, or null without a resume or requirements. */
+  resume?: ResumeMatch | null;
   /** When it was sent, e.g. "18 Aug"; null while never sent. */
   sent: string | null;
   /** "Today", "3 days ago"… */
@@ -42,12 +46,16 @@ export async function loadApplicationRows({ archived, sort }: { archived: boolea
       archivedAt: true,
       deadline: true,
       match: true,
+      extracted: true,
+      documents: { where: { kind: DocumentKind.RESUME }, select: { units: true } },
       sentAt: true,
       updatedAt: true,
     },
   });
   const rows = applications.map((application) => {
     const match = matchSchema.safeParse(application.match);
+    const extracted = extractedSchema.safeParse(application.extracted);
+    const units = unitsSchema.safeParse(application.documents[0]?.units);
     return {
       id: application.id,
       company: application.company.trim(),
@@ -58,6 +66,7 @@ export async function loadApplicationRows({ archived, sort }: { archived: boolea
       archived: application.archivedAt !== null,
       deadline: application.deadline ? formatCalendarDate(application.deadline) : null,
       match: match.success && match.data.items.length > 0 ? matchScore(match.data) : null,
+      resume: extracted.success && units.success ? resumeMatch(units.data, extracted.data.requirements) : null,
       sentAt: application.sentAt,
       updatedAt: application.updatedAt,
     };

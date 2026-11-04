@@ -129,12 +129,28 @@ export function withSkillAdded(item: Match["items"][number], skill: string): Mat
   return { ...item, result: "partial", skill, note: "In your skills, but not linked to a role yet" };
 }
 
-/** "5/7 match": requirements that are covered or partly covered, out of all of them. */
-export function matchScore(match: Match): { hit: number; total: number } {
+/**
+ * How well an application matches: `hit` of `total` requirements covered or
+ * partly covered ("5/7"), and `percent`, where a covered requirement counts
+ * fully and a partly covered one half ("64%").
+ */
+export type MatchSummary = { hit: number; total: number; percent?: number };
+
+/** "5/7 match, 64%": requirements that are covered or partly covered, out of all of them, and the weighted percentage. */
+export function matchScore(match: Match): Required<MatchSummary> {
+  const total = match.items.length;
+  const covered = match.items.filter((item) => item.result === "covered").length;
+  const partial = match.items.filter((item) => item.result === "partial").length;
   return {
-    hit: match.items.filter((item) => item.result !== "gap").length,
-    total: match.items.length,
+    hit: covered + partial,
+    total,
+    percent: total > 0 ? Math.round(((covered + partial / 2) / total) * 100) : 0,
   };
+}
+
+/** The match as a percentage; one saved without it counts its hits fully. */
+export function matchPercent(match: MatchSummary): number {
+  return match.percent ?? (match.total > 0 ? Math.round((match.hit / match.total) * 100) : 0);
 }
 
 /** One unit change made from the chat, with the text it replaced so it can be undone (APP-8). */

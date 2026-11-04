@@ -26,14 +26,17 @@ export function MatchRows({
   requirements: Requirement[];
   onAddSkill: (index: number, skill: string) => void;
 }) {
-  const { hit, total } = matchScore(match);
+  const { hit, total, percent } = matchScore(match);
   return (
     <div className="flex flex-col">
       <div className="flex flex-wrap items-baseline justify-between gap-3 pb-3.5">
         <h2 className="text-[15px] font-medium">How you match</h2>
-        <p className="text-meta text-muted">
-          {hit} of {total} covered by your profile
-        </p>
+        <div className="flex items-baseline gap-2">
+          <p className="text-meta font-medium text-ink tabular-nums">{percent}% match</p>
+          <p className="text-meta text-muted">
+            {hit} of {total} covered by your profile
+          </p>
+        </div>
       </div>
       <ul aria-label="Requirements">
         {match.items.map((item, index) => {

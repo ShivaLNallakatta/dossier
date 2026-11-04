@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { MatchLabel, ResumeMatchLabel } from "@/components/match-label";
 import { StatusDot } from "@/components/ui/status-dot";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 import type { ApplicationRow } from "@/lib/applications-data";
@@ -15,7 +16,8 @@ import { RowMenu } from "./row-menu";
 const COLUMNS: { key: SortKey; label: string; className: string }[] = [
   { key: "role", label: "Role", className: "w-[34%]" },
   { key: "status", label: "Status", className: "w-[168px]" },
-  { key: "match", label: "Match", className: "w-[76px]" },
+  { key: "match", label: "Match", className: "w-[104px]" },
+  { key: "resume", label: "Resume", className: "w-[84px]" },
   { key: "location", label: "Location", className: "w-[18%]" },
   { key: "sent", label: "Sent", className: "w-[88px]" },
   { key: "updated", label: "Updated", className: "w-[118px]" },
@@ -48,7 +50,7 @@ export function Table({
   return (
     // Relative, so screen-reader-only text is clipped with the table.
     <div className="relative mx-10 mb-16 overflow-x-auto rounded-panel border border-line-card bg-card">
-      <table className="w-full min-w-[820px] table-fixed border-collapse text-left">
+      <table className="w-full min-w-[900px] table-fixed border-collapse text-left">
         <thead>
           <tr className="border-b border-line">
             {COLUMNS.map((column) => {
@@ -113,7 +115,8 @@ export function Table({
                   </select>
                 </span>
               </td>
-              <td className="py-3.5 pr-4 text-sm tabular-nums">{row.match ? `${row.match.hit}/${row.match.total}` : "Not matched"}</td>
+              <td className="py-3.5 pr-4 text-sm tabular-nums">{row.match ? <MatchLabel match={row.match} compact /> : "Not matched"}</td>
+              <td className="py-3.5 pr-4 text-sm tabular-nums">{row.resume ? <ResumeMatchLabel resume={row.resume} compact /> : "None"}</td>
               <td className="truncate py-3.5 pr-4 text-sm text-muted">{row.location || "Not given"}</td>
               <td className="py-3.5 pr-4 text-sm text-muted">{row.sent ?? "Not sent"}</td>
               <td className="py-3.5 pr-4 text-sm text-muted">{row.updated}</td>

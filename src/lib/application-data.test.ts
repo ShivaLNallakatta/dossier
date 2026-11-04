@@ -4,6 +4,7 @@ import {
   editsSchema,
   extractedSchema,
   matchSchema,
+  matchPercent,
   matchScore,
   unitsSchema,
   type Match,
@@ -52,7 +53,11 @@ describe("JSON column schemas", () => {
       ],
     };
     expect(matchSchema.parse(match)).toEqual(match);
-    expect(matchScore(match)).toEqual({ hit: 2, total: 3 });
+    // Covered counts fully and partial half: (1 + 0.5) / 3 = 50%.
+    expect(matchScore(match)).toEqual({ hit: 2, total: 3, percent: 50 });
+    expect(matchScore({ items: [] })).toEqual({ hit: 0, total: 0, percent: 0 });
+    expect(matchPercent({ hit: 5, total: 7 })).toBe(71);
+    expect(matchPercent({ hit: 5, total: 7, percent: 64 })).toBe(64);
     expect(
       matchSchema.safeParse({ items: [{ ...item, requirement: "x", result: "maybe" }] }).success,
     ).toBe(false);

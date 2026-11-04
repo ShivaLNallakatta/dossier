@@ -19,7 +19,7 @@ import {
   type PaperSize,
   type Tone,
 } from "@/generated/prisma/enums";
-import { type Match, type Requirement, type Unit } from "@/lib/application-data";
+import { matchPercent, type Match, type MatchSummary, type Requirement, type Unit } from "@/lib/application-data";
 import { EMAIL_UNITS, WRITTEN_EMAIL_UNITS } from "@/lib/application-email";
 import { documentLabels } from "@/lib/document-labels";
 import { defaultFrame, isFrameUnit, isParagraph, withFrame, WRITTEN_FRAME_UNITS } from "@/lib/letter-frame";
@@ -30,6 +30,7 @@ import type { RefineResult } from "@/lib/jobs/refine";
 import type { RegenerateUnitResult } from "@/lib/jobs/regenerate-unit";
 import type { JobView } from "@/lib/jobs/runner";
 import type { WriteEmailResult } from "@/lib/jobs/write-email";
+import type { RewriteResumeResult } from "@/lib/jobs/rewrite-resume";
 import type { FactItem, ProfileData } from "@/lib/profile";
 import type { RefineSuggestions } from "@/lib/refine-suggestions";
 import { hasSidebar, type ThemeData } from "@/lib/themes";
@@ -47,9 +48,11 @@ import {
   setFollowThemeLayout,
   setShowPhoto,
   startRegenerating,
+  startRewritingResume,
   startWritingEmail,
   undoEmailRewrite,
   undoMessage,
+  undoResumeRewrite,
 } from "./actions";
 import { ApplicationHeader } from "./application-header";
 import { ApplicationMenu } from "./application-menu";
@@ -136,6 +139,10 @@ export type ApplicationViewProps = {
   email: Unit[] | null;
   /** The email being written, e.g. since before a reload. */
   writingEmail: string | null;
+  /** "Write again" on the resume, when it's still being written (a reload mid-way). */
+  writingResume?: string | null;
+  /** The resume was written by an older release of Dossier's resume writing. */
+  resumeOutdated?: boolean;
   /** The PDFs to attach to the email. */
   attachments: Attachments;
   /** Sending through Gmail (E15-2), and the application's mail (E15-3). */
@@ -150,7 +157,7 @@ export type ApplicationViewProps = {
   /** The date on the letter, at UTC midnight. */
   letterDate: Date;
   /** "5/7 match" on the Job posting tab, when the requirements were matched. */
-  score: { hit: number; total: number } | null;
+  score: MatchSummary | null;
   initialTab: Tab;
   /** Whether an AI provider is set up; without one, the AI buttons point to Settings. */
   aiReady: boolean;
@@ -183,6 +190,8 @@ export function ApplicationView({
   baseThemeId,
   email,
   writingEmail,
+  writingResume = null,
+  resumeOutdated = false,
   attachments,
   gmail,
   profile,
@@ -233,6 +242,7 @@ export function ApplicationView({
     Object.fromEntries(rewritingAtLoad.map(({ jobId, document, unitId }) => [keyOf(document, unitId), { jobId, revision: 0 }])),
   );
   const [emailJob, setEmailJob] = useState<Rewrite | null>(writingEmail ? { jobId: writingEmail, revision: 0 } : null);
+  const [resumeJob, setResumeJob] = useState<Rewrite | null>(writingResume ? { jobId: writingResume, revision: 0 } : null);
 
   /** The document on screen, which a chat message without a target is most likely about. */
   const onScreen = (): DocumentKind | null =>
@@ -461,6 +471,53 @@ export function ApplicationView({
     });
   };
 
+  /** "Write again" on the tailored resume: from the profile as it is now, with the current resume writing. */
+  const writeResumeAgain = async () => {
+    if (!aiReady) return needsAi();
+    if (resumeJob) return;
+    setResumeJob({ jobId: "", revision: 0 });
+    const result = await startRewritingResume({ id: application.id });
+    if (result.ok) setResumeJob({ jobId: result.data, revision: 0 });
+    else {
+      setResumeJob(null);
+      toast(result.error);
+    }
+  };
+
+  const resumeJobChanged = (job: JobView<RewriteResumeResult>) => {
+    if (job.status === "FAILED") {
+      setResumeJob(null);
+      toast(job.error ?? "That didn't work. Try again.", {
+        action: {
+          label: "Retry",
+          onClick: () =>
+            void retry({ id: job.id }).then((retried) => {
+              if (retried.ok) setResumeJob((current) => ({ jobId: job.id, revision: (current?.revision ?? 0) + 1 }));
+              else toast(retried.error);
+            }),
+        },
+      });
+      return;
+    }
+    if (job.status !== "DONE" || !job.result) return;
+    setResumeJob(null);
+    startTransition(() => router.refresh());
+    const { previous, trimmed } = job.result;
+    const message = ["Wrote the resume again from your profile as it is now.", ...trimmed.map((line) => `${line}.`)].join(" ");
+    if (!previous) return toast(message);
+    toast(message, {
+      action: {
+        label: "Undo",
+        onClick: () =>
+          startTransition(async () => {
+            const undone = await undoResumeRewrite({ id: application.id, jobId: job.id });
+            if (!undone.ok) return toast(undone.error);
+            toast("Put the resume back.");
+          }),
+      },
+    });
+  };
+
   /** "+ Add to profile" on the Job posting tab (E8-7). */
   const addSkill = (index: number) =>
     startTransition(async () => {
@@ -618,6 +675,9 @@ export function ApplicationView({
       {emailJob?.jobId && (
         <JobWatcher<WriteEmailResult> key={emailJob.jobId} id={emailJob.jobId} revision={emailJob.revision} onChange={emailChanged} />
       )}
+      {resumeJob?.jobId && (
+        <JobWatcher<RewriteResumeResult> key={resumeJob.jobId} id={resumeJob.jobId} revision={resumeJob.revision} onChange={resumeJobChanged} />
+      )}
       <ApplicationHeader
         title={application.title}
         meta={meta}
@@ -654,7 +714,7 @@ export function ApplicationView({
               {waiting > 0 ? `Conversation · ${waiting} new` : gmail.emails.length > 0 ? `Conversation · ${gmail.emails.length}` : "Conversation"}
             </TabsTrigger>
           )}
-          <TabsTrigger value="posting">{score ? `Job posting · ${score.hit}/${score.total} match` : "Job posting"}</TabsTrigger>
+          <TabsTrigger value="posting">{score ? `Job posting · ${matchPercent(score)}% match` : "Job posting"}</TabsTrigger>
           <TabsTrigger value="notes">{notes > 0 ? `Notes · ${notes}` : "Notes"}</TabsTrigger>
         </TabsList>
       </ApplicationHeader>
@@ -669,6 +729,13 @@ export function ApplicationView({
                   versionBanner(viewed(DocumentKind.RESUME)!)
                 ) : resume.trimmed?.length ? (
                   <TrimmedNotice items={resume.trimmed} onPutBack={putBack} />
+                ) : resumeOutdated && !resumeJob ? (
+                  <div role="note" className="flex flex-wrap items-center justify-between gap-3 rounded-card bg-warning-surface px-4 py-2.5 text-meta text-warning">
+                    <span>Dossier writes resumes better since this one was written, for example keeping your key points (★).</span>
+                    <Button size="sm" onClick={() => void writeResumeAgain()}>
+                      Write it again
+                    </Button>
+                  </div>
                 ) : undefined
               }
               label={
@@ -679,6 +746,17 @@ export function ApplicationView({
                   )}
                   {profile.photo && <PreviewSwitch label="Photo" checked={showPhoto} onCheckedChange={changePhoto} />}
                   {historyButton(DocumentKind.RESUME)}
+                  {!viewed(DocumentKind.RESUME) && (
+                    <Button
+                      variant="text"
+                      size="sm"
+                      aria-disabled={resumeJob ? true : undefined}
+                      title="Write the whole resume again from your profile as it is now, with Dossier's latest resume writing. The current one stays in its history."
+                      onClick={() => void writeResumeAgain()}
+                    >
+                      {resumeJob ? "Writing again…" : "Write again"}
+                    </Button>
+                  )}
                 </span>
               }
             >
@@ -758,6 +836,7 @@ export function ApplicationView({
             onAddSkill={(index) => addSkill(index)}
             facts={facts}
             setFacts={setFacts}
+            resumeUnits={resumeUnits}
           />
         </TabsContent>
 

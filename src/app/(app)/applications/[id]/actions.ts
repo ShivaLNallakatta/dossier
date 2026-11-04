@@ -19,6 +19,7 @@ import { refineJob, refineJobKey } from "@/lib/jobs/refine";
 import { regenerateUnitJob, unitJobKey } from "@/lib/jobs/regenerate-unit";
 import { findUnfinishedJobs, startJob } from "@/lib/jobs/runner";
 import { emailJobKey, writeEmailJob } from "@/lib/jobs/write-email";
+import { resumeJobKey, rewriteResumeJob } from "@/lib/jobs/rewrite-resume";
 import { prisma } from "@/lib/prisma";
 import { findOrCreateSkill } from "@/lib/profile-entries";
 import { cleanUnitText, isPublicationUnit, unitName } from "@/lib/unit-text";
@@ -477,6 +478,42 @@ export const restoreVersion = action(z.object({ id: z.string().min(1), versionId
     });
   }
   toast(`Restored the ${DOCUMENT_LABELS[kind].toLowerCase()} as it was then. The version you had is in the history too.`);
+  refresh(id);
+  return null;
+});
+
+// ─── The resume, written again ───────────────────────────────────────────────
+
+/**
+ * "Write again" on the tailored resume: writes it again in the background,
+ * from the profile as it is now and with Dossier's current resume writing,
+ * and returns the job's id. Asking again while it's being written follows
+ * the same job.
+ */
+export const startRewritingResume = action(z.object({ id: z.string().min(1) }), async ({ id }) => {
+  if (!(await prisma.application.count({ where: { id } }))) throw new ActionError(GONE);
+  if (!(await isAiConfigured())) throw new ActionError("That needs an AI provider. Choose one in Settings → AI provider.");
+  const [running] = await findUnfinishedJobs(resumeJobKey(id));
+  return running?.id ?? startJob(rewriteResumeJob, { applicationId: id }, { key: resumeJobKey(id), applicationId: id });
+});
+
+/**
+ * Undo on the "Wrote the resume again." toast: puts back the resume the
+ * rewrite replaced, unless it has changed since (trimming aside, which
+ * only cuts what was written).
+ */
+export const undoResumeRewrite = action(z.object({ id: z.string().min(1), jobId: z.string().min(1) }), async ({ id, jobId }) => {
+  const job = await prisma.job.findFirst({ where: { id: jobId, key: resumeJobKey(id), status: "DONE" }, select: { result: true } });
+  const result = rewriteResumeJob.result.safeParse(job?.result);
+  const previous = result.success ? result.data.previous : null;
+  if (!result.success || !previous) throw new ActionError("There's nothing to undo.");
+
+  await updateDocuments(id, async (documents) => {
+    if (!documents[DocumentKind.RESUME]) throw new ActionError(PART_GONE);
+    documents[DocumentKind.RESUME] = previous;
+  }, { version: { cause: VersionCause.UNDONE } });
+  // The resume that comes back was never trimmed by this rewrite.
+  await prisma.document.updateMany({ where: { applicationId: id, kind: DocumentKind.RESUME }, data: { trimmed: Prisma.DbNull } });
   refresh(id);
   return null;
 });

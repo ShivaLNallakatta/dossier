@@ -1,5 +1,7 @@
 import { ApplicationStatus } from "@/generated/prisma/enums";
+import { matchPercent, type MatchSummary } from "@/lib/application-data";
 import { STATUSES, statusInfo } from "@/lib/status";
+import type { ResumeMatch } from "@/lib/resume-match";
 
 // The Applications screen (E9): its views, filters and sorting, kept in the
 // URL (?view=&filter=&q=&sort=&archived=) so links can be shared and back and
@@ -23,7 +25,7 @@ export function statusesIn(filter: Filter): ApplicationStatus[] {
 }
 
 /** The table's sortable columns. */
-export const SORT_KEYS = ["role", "status", "match", "location", "sent", "updated"] as const;
+export const SORT_KEYS = ["role", "status", "match", "resume", "location", "sent", "updated"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 /** A column and whether it's reversed from its natural order, which comes first. */
 export type Sort = { key: SortKey; reversed: boolean };
@@ -36,6 +38,7 @@ export const NATURAL_ORDER: Record<SortKey, "ascending" | "descending"> = {
   role: "ascending",
   status: "ascending",
   match: "descending",
+  resume: "descending",
   location: "ascending",
   sent: "descending",
   updated: "descending",
@@ -95,15 +98,17 @@ export type Sortable = {
   role: string;
   company: string;
   status: ApplicationStatus;
-  /** Requirements covered, out of all (e.g. 5/7), or null when not matched. */
-  match: { hit: number; total: number } | null;
+  /** Requirements covered, out of all (e.g. 5/7), with the match percentage, or null when not matched. */
+  match: MatchSummary | null;
+  /** How much of the posting the tailored resume mentions (resumeMatch); null or left out without one. */
+  resume?: ResumeMatch | null;
   location: string;
   sentAt: Date | null;
   updatedAt: Date;
 };
 
 const statusRank = (status: ApplicationStatus) => STATUSES.findIndex((entry) => entry.value === status);
-const matchRatio = (match: Sortable["match"]) => (match && match.total > 0 ? match.hit / match.total : -1);
+const matchRatio = (match: Sortable["match"]) => (match && match.total > 0 ? matchPercent(match) : -1);
 const text = (value: string) => value.trim().toLocaleLowerCase();
 
 /**
@@ -120,6 +125,8 @@ export function sortRows<T extends Sortable>(rows: readonly T[], { key, reversed
         return (statusRank(a.status) - statusRank(b.status)) * direction;
       case "match":
         return (matchRatio(a.match) - matchRatio(b.match)) * direction;
+      case "resume":
+        return ((a.resume?.percent ?? -1) - (b.resume?.percent ?? -1)) * direction;
       case "location":
         return text(a.location).localeCompare(text(b.location)) * direction;
       case "sent":

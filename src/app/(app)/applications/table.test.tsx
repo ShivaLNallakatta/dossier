@@ -28,7 +28,7 @@ const row = (id: string, extra: Partial<ApplicationRow> = {}): ApplicationRow =>
   updatedAt: Date.UTC(2026, 8, 26),
   ...extra,
 });
-const rows = [row("kestrel", { company: "Kestrel Maps", role: "Product Designer, Mobile", match: null }), row("draft", { status: "DRAFT", sent: null, location: "" })];
+const rows = [row("kestrel", { company: "Kestrel Maps", role: "Product Designer, Mobile", match: null }), row("draft", { status: "DRAFT", sent: null, location: "", resume: { hit: 4, total: 5, percent: 80, missing: ["BigQuery"] } })];
 const params: ListParams = { view: "table", filter: "all", q: "", sort: DEFAULT_SORT, archived: false };
 const open = (extra: Partial<ListParams> = {}) =>
   render(<ApplicationsScreen params={{ ...params, ...extra }} rows={rows} counts={{ all: 2, active: 2, closed: 0 }} summary="2 applications" empty={false} archivedCount={0} />);
@@ -45,6 +45,7 @@ describe("the table (E9-3)", () => {
       "Role",
       "Status",
       "Match",
+      "Resume",
       "Location",
       "Sent",
       "Updated ↓",
@@ -63,12 +64,14 @@ describe("the table (E9-3)", () => {
       "Product Designer, MobileKestrel Maps",
       expect.stringContaining("Sent"),
       "Not matched",
+      "None",
       "Amsterdam",
       "20 Sep",
       "2 days ago",
       "⋯",
     ]);
-    expect(within(draft).getAllByRole("cell").slice(2, 5).map((cell) => cell.textContent)).toEqual(["5/7", "Not given", "Not sent"]);
+    expect(within(draft).getAllByRole("cell").slice(2, 6).map((cell) => cell.textContent)).toEqual(["71% · 5/7", "80%", "Not given", "Not sent"]);
+    expect(within(draft).getByTitle(/mentions 4 of the posting's 5 requirements/)).toHaveAttribute("title", expect.stringContaining("Not in it yet: BigQuery"));
   });
 
   it("sorts by a column, and reverses on a second click", async () => {

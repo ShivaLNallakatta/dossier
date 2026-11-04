@@ -67,6 +67,8 @@ describe("sortRows (E9-3)", () => {
     const rows = [row("offer", { status: "OFFER", match: { hit: 3, total: 7 } }), row("draft", { status: "DRAFT", match: { hit: 6, total: 7 } }), row("none")];
     expect(ids(sortRows(rows, { key: "status", reversed: false }))).toEqual(["draft", "none", "offer"]);
     expect(ids(sortRows(rows, { key: "match", reversed: false }))).toEqual(["draft", "offer", "none"]);
+    const resumes = [row("low", { resume: { hit: 2, total: 5, percent: 40, missing: [] } }), row("none"), row("high", { resume: { hit: 5, total: 5, percent: 100, missing: [] } })];
+    expect(ids(sortRows(resumes, { key: "resume", reversed: false }))).toEqual(["high", "low", "none"]);
   });
 
   it("keeps never-sent applications last under Sent, both ways", () => {

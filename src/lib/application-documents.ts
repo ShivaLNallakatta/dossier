@@ -79,6 +79,8 @@ export async function loadDocuments(id: string) {
     includeReferences: settings.includeRefs && extracted?.asksForReferences === true,
     /** Settings → "Skills under each role". */
     roleSkills: settings.roleSkills,
+    /** The prompt version that last wrote the resume, e.g. "tailor-resume@7"; null when unknown. */
+    resumeWrittenWith: application.documents.find((entry) => entry.kind === DocumentKind.RESUME)?.writtenWith ?? null,
     /** Dated the day it was sent; until then, today. */
     letterDate: calendarDay(application.sentAt ?? undefined),
   };

@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 
+import { MatchLabel, ResumeMatchLabel } from "@/components/match-label";
 import { StatusDot } from "@/components/ui/status-dot";
 import type { ApplicationStatus } from "@/generated/prisma/enums";
 import type { ApplicationRow } from "@/lib/applications-data";
@@ -186,7 +187,15 @@ function CardFace({ row, lifted = false, onOpen }: { row: ApplicationRow; lifted
         </p>
       )}
       <p className="mt-0.5 flex justify-between gap-2 border-t border-line pt-1.5 text-xs text-muted">
-        <span>{row.match ? `${row.match.hit}/${row.match.total} match` : "Not matched"}</span>
+        <span>
+          {row.match ? <MatchLabel match={row.match} /> : "Not matched"}
+          {row.resume && (
+            <>
+              {" · "}
+              <ResumeMatchLabel resume={row.resume} />
+            </>
+          )}
+        </span>
         <span>{row.updated}</span>
       </p>
     </div>
