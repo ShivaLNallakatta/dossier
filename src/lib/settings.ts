@@ -157,6 +157,8 @@ export const settingsSchema = z.object({
   customLanguages: stringList.catch([]),
   fileNamePattern: z.string().catch("{name} – {company} – {doc}"),
   includeRefs: flag(false),
+  /** "Skills under each role": the "Skills ·" line under roles and projects on resumes. */
+  roleSkills: flag(true),
   /** Up to two pages unless chosen (decided 22 October 2026: resumes aren't forced to one page). */
   pageLimit: pageLimit.catch("2"),
   nightlyBackup: flag(true),

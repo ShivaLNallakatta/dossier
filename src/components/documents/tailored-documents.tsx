@@ -18,6 +18,7 @@ export function TailoredResume({
   showPhoto,
   language,
   includeReferences,
+  roleSkills = true,
   renderUnit,
 }: {
   resume: DocumentData;
@@ -29,6 +30,8 @@ export function TailoredResume({
   showPhoto: boolean | null;
   language: string;
   includeReferences: boolean;
+  /** Settings → "Skills under each role"; on unless turned off. */
+  roleSkills?: boolean;
   renderUnit?: UnitRenderer;
 }) {
   return (
@@ -41,6 +44,7 @@ export function TailoredResume({
       showPhoto={showPhoto}
       language={language}
       includeReferences={includeReferences}
+      roleSkills={roleSkills}
       renderUnit={renderUnit}
     />
   );

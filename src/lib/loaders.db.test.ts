@@ -64,6 +64,7 @@ describe("loadDocuments (E8-8)", () => {
     // No theme of its own: the base theme.
     expect(loaded.letter?.theme.id).toBe("editorial");
     expect(loaded.includeReferences).toBe(false);
+    expect(loaded.roleSkills).toBe(true);
     expect(loaded.letterDate.getUTCHours()).toBe(0);
   });
 

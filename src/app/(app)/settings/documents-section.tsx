@@ -32,6 +32,8 @@ export type DocumentSettings = {
   customLanguages: string[];
   fileNamePattern: string;
   includeRefs: boolean;
+  /** The "Skills ·" line under each role and project on resumes. */
+  roleSkills: boolean;
   pageLimit: PageLimit;
 };
 
@@ -260,6 +262,13 @@ export function DocumentsSection({
           description="Add your references to resumes when a posting asks for them. Otherwise they're left out."
           checked={settings.includeRefs}
           onCheckedChange={(includeRefs) => change({ includeRefs })}
+        />
+        <Toggle
+          className="border-t border-line py-4"
+          label="Skills under each role"
+          description="List the skills used under each role and project. Turn it off to keep them in the Skills section only, for a shorter resume."
+          checked={settings.roleSkills}
+          onCheckedChange={(roleSkills) => change({ roleSkills })}
         />
       </Card>
     </>

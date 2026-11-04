@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: PageProps<"/applications/[id]
 export default async function ApplicationPage({ params, searchParams }: PageProps<"/applications/[id]">) {
   const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   await pullCalendar(id);
-  const [{ application, profile, settings, extracted, resume, letter, email, includeReferences, letterDate }, aiReady, unitJobs, refineJobs, emailJobs, timeZone, google, emails, themes] =
+  const [{ application, profile, settings, extracted, resume, letter, email, includeReferences, roleSkills, letterDate }, aiReady, unitJobs, refineJobs, emailJobs, timeZone, google, emails, themes] =
     await Promise.all([
       loadDocuments(id),
       isAiConfigured(),
@@ -131,6 +131,7 @@ export default async function ApplicationPage({ params, searchParams }: PageProp
       paper={settings.paper}
       dateFormat={settings.dateFormat}
       includeReferences={includeReferences}
+      roleSkills={roleSkills}
       letterDate={letterDate}
       score={match && match.items.length > 0 ? matchScore(match) : null}
       initialTab={tabFrom(tab)}

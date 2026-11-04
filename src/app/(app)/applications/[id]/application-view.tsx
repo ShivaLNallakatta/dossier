@@ -145,6 +145,8 @@ export type ApplicationViewProps = {
   dateFormat: DateFormat;
   /** Settings → "Include references", when the posting asks for them (SET-9). */
   includeReferences: boolean;
+  /** Settings → "Skills under each role"; on unless turned off. */
+  roleSkills?: boolean;
   /** The date on the letter, at UTC midnight. */
   letterDate: Date;
   /** "5/7 match" on the Job posting tab, when the requirements were matched. */
@@ -187,6 +189,7 @@ export function ApplicationView({
   paper,
   dateFormat,
   includeReferences,
+  roleSkills = true,
   letterDate,
   score,
   initialTab,
@@ -687,6 +690,7 @@ export function ApplicationView({
                 showPhoto={photoChoice}
                 language={application.language}
                 includeReferences={includeReferences}
+                roleSkills={roleSkills}
                 renderUnit={viewed(DocumentKind.RESUME) ? plainUnit : unitsOf(DocumentKind.RESUME, resumeUnits)}
               />
             </DocumentPreview>

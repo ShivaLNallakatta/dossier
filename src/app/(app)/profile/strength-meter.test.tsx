@@ -21,5 +21,16 @@ describe("StrengthMeter", () => {
     expect(bar).toHaveAttribute("aria-valuenow", "37"); // 1/6 × 40 = 6.7 → plus 30
     expect(bar).toHaveAccessibleDescription("A good start. Experience matters most.");
     expect(screen.getByText("37%")).toBeInTheDocument();
+    // "Jane" alone is worth fixing (profileChecks).
+    expect(screen.getByRole("note", { name: "Worth fixing" })).toHaveTextContent("Add your full name.");
+  });
+
+  it("shows nothing to fix when there's nothing", () => {
+    render(
+      <StrengthMeter
+        profile={{ basics: { ...basics, name: "Jane Doe" }, skills: [], languages: [], experience: [], projects: [], education: [], publications: [], references: [], facts: [], photo: null }}
+      />,
+    );
+    expect(screen.queryByRole("note", { name: "Worth fixing" })).not.toBeInTheDocument();
   });
 });

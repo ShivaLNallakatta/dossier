@@ -122,6 +122,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             customLanguages: settings.customLanguages,
             fileNamePattern: settings.fileNamePattern,
             includeRefs: settings.includeRefs,
+            roleSkills: settings.roleSkills,
             pageLimit: settings.pageLimit,
           }}
           preview={await filePreview()}
