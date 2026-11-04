@@ -6,8 +6,8 @@ import { Prisma } from "@/generated/prisma/client";
 import { DocumentKind, VersionCause } from "@/generated/prisma/enums";
 import { getAiProvider } from "@/lib/ai";
 import { loadTaskOptions } from "@/lib/ai/task-options";
-import { tailorResume } from "@/lib/ai/tasks";
-import { extractedOf, matchSchema, unitsSchema } from "@/lib/application-data";
+import { matchRequirements, tailorResume } from "@/lib/ai/tasks";
+import { extractedOf, matchSchema, unitsSchema, type Match } from "@/lib/application-data";
 import { updateDocuments } from "@/lib/document-units";
 import { saveVersion } from "@/lib/document-versions";
 import { logServerError } from "@/lib/log";
@@ -24,7 +24,8 @@ export const resumeJobKey = (applicationId: string) => `resume:${applicationId}`
  * "Write again" on an application's tailored resume: writes it again from
  * the profile as it is now, with Dossier's current resume writing (key
  * points, prompts and checks from newer releases), and the application's
- * posting, match and facts. The resume it replaces stays in its history and
+ * posting and facts. The posting's requirements are matched against the
+ * profile again first, so the match and its percentage follow the profile. The resume it replaces stays in its history and
  * comes back with Undo. A resume over the page limit is trimmed, as when the
  * application was created.
  */
@@ -40,13 +41,33 @@ export const rewriteResumeJob = defineJob({
     trimmed: z.array(z.string()),
   }),
   async run({ applicationId }, { step, signal }) {
-    await step("Writing the resume again");
     const application = await prisma.application.findUniqueOrThrow({ where: { id: applicationId } });
-    const match = matchSchema.safeParse(application.match);
+    const extracted = extractedOf(application);
+    const saved = matchSchema.safeParse(application.match);
+    let match: Match | null = saved.success ? saved.data : null;
     const [provider, options, profile, facts] = await Promise.all([getAiProvider(), loadTaskOptions(), loadProfile(), loadFactTexts(applicationId)]);
+
+    // The profile may have changed since the posting was matched: match it again.
+    if (extracted.requirements.length > 0) {
+      await step("Matching the posting against your profile");
+      try {
+        const matched = await matchRequirements(provider, { requirements: extracted.requirements, profile }, { ...options, signal });
+        match = matched.data;
+        await prisma.application.update({
+          where: { id: applicationId },
+          data: { match: matched.data as Prisma.InputJsonValue, matchedWith: matched.promptVersion },
+        });
+      } catch (error) {
+        if (signal.aborted) throw error;
+        // The match it had is still good enough to write from.
+        logServerError("matching a posting again", error);
+      }
+    }
+
+    await step("Writing the resume again");
     const { data, promptVersion } = await tailorResume(
       provider,
-      { profile, extracted: extractedOf(application), match: match.success ? match.data : null, facts, posting: application.postingText },
+      { profile, extracted, match, facts, posting: application.postingText },
       // In the application's language, like its other documents.
       { ...options, language: application.language || options.language, signal },
     );

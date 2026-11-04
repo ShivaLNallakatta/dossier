@@ -1073,10 +1073,16 @@ describe("writing the resume again", () => {
     const user = userEvent.setup();
     const { rerender } = render(<ApplicationView {...props} />);
     expect(screen.queryByText(/Dossier writes resumes better since this one was written/)).not.toBeInTheDocument();
-    rerender(<ApplicationView {...props} resumeOutdated />);
+    rerender(<ApplicationView {...props} resumeStale="release" />);
     expect(screen.getByRole("note")).toHaveTextContent("Dossier writes resumes better since this one was written");
     await user.click(screen.getByRole("button", { name: "Write it again" }));
     expect(startRewritingResume).toHaveBeenCalledWith({ id: "app-1" });
+  });
+
+  it("suggests writing it again when the profile changed since", () => {
+    render(<ApplicationView {...props} resumeStale="profile" />);
+    expect(screen.getByRole("note")).toHaveTextContent("Your profile has changed since this resume was written.");
+    expect(screen.getByRole("button", { name: "Write it again" })).toBeInTheDocument();
   });
 
   it("keeps writing one started before a reload", () => {

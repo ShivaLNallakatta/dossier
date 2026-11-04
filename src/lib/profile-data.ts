@@ -98,3 +98,26 @@ export async function loadFacts(applicationId: string | null): Promise<FactItem[
     orderBy: [{ sort: "asc" }, { createdAt: "asc" }],
   });
 }
+
+/**
+ * When the profile last changed, and the facts for one application with it:
+ * the latest edit to a basic, role, project, degree, publication or fact, or
+ * the latest skill or language added. Null for an empty profile. For "Your
+ * profile has changed since this resume was written".
+ */
+export async function profileChangedAt(applicationId?: string): Promise<Date | null> {
+  const latest = await Promise.all([
+    prisma.profileField.aggregate({ _max: { updatedAt: true } }).then((found) => found._max.updatedAt),
+    prisma.experience.aggregate({ _max: { updatedAt: true } }).then((found) => found._max.updatedAt),
+    prisma.project.aggregate({ _max: { updatedAt: true } }).then((found) => found._max.updatedAt),
+    prisma.education.aggregate({ _max: { updatedAt: true } }).then((found) => found._max.updatedAt),
+    prisma.publication.aggregate({ _max: { updatedAt: true } }).then((found) => found._max.updatedAt),
+    prisma.fact
+      .aggregate({ where: { OR: [{ applicationId: null }, ...(applicationId ? [{ applicationId }] : [])] }, _max: { updatedAt: true } })
+      .then((found) => found._max.updatedAt),
+    prisma.skill.aggregate({ _max: { createdAt: true } }).then((found) => found._max.createdAt),
+    prisma.language.aggregate({ _max: { createdAt: true } }).then((found) => found._max.createdAt),
+  ]);
+  const times = latest.flatMap((date) => (date ? [date.getTime()] : []));
+  return times.length > 0 ? new Date(Math.max(...times)) : null;
+}

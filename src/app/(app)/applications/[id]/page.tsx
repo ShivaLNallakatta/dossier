@@ -12,7 +12,9 @@ import { regenerateUnitJob, unitJobKey } from "@/lib/jobs/regenerate-unit";
 import { findUnfinishedJobs } from "@/lib/jobs/runner";
 import { emailJobKey } from "@/lib/jobs/write-email";
 import { resumeJobKey } from "@/lib/jobs/rewrite-resume";
-import { TAILOR_RESUME_VERSION } from "@/lib/ai/tasks/tailor-resume";
+import { prisma } from "@/lib/prisma";
+import { profileChangedAt } from "@/lib/profile-data";
+import { resumeStaleness, type ResumeStale } from "@/lib/resume-staleness";
 import { googleConnection } from "@/lib/google/account";
 import { pullInterviewEvents } from "@/lib/google/availability";
 import { loadConversation } from "@/lib/google/inbox-data";
@@ -115,8 +117,8 @@ export default async function ApplicationPage({ params, searchParams }: PageProp
       email={email}
       writingEmail={emailJobs.at(-1)?.id ?? null}
       writingResume={resumeJobs.at(-1)?.id ?? null}
-      // Written before this release's resume writing (key points and the rest): worth writing again.
-      resumeOutdated={resumeWrittenWith !== null && resumeWrittenWith !== TAILOR_RESUME_VERSION}
+      // Written by an older release, or before the profile last changed: worth writing again.
+      resumeStale={resume ? await resumeStale(id, resumeWrittenWith) : null}
       attachments={{ resume: resume ? fileName("RESUME") : null, letter: letter ? fileName("COVER_LETTER") : null }}
       gmail={
         google.status === "not-configured" && emails.length === 0
@@ -153,4 +155,17 @@ export default async function ApplicationPage({ params, searchParams }: PageProp
       })}
     />
   );
+}
+
+/** Why the tailored resume is worth writing again, if it is: an older release wrote it, or the profile changed since. */
+async function resumeStale(applicationId: string, writtenWith: string | null): Promise<ResumeStale> {
+  const [written, changed] = await Promise.all([
+    prisma.documentVersion.findFirst({
+      where: { document: { applicationId, kind: "RESUME" }, cause: "WRITTEN" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
+    profileChangedAt(applicationId),
+  ]);
+  return resumeStaleness({ writtenWith, writtenAt: written?.createdAt ?? null, profileChangedAt: changed });
 }

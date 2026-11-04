@@ -31,6 +31,7 @@ import type { RegenerateUnitResult } from "@/lib/jobs/regenerate-unit";
 import type { JobView } from "@/lib/jobs/runner";
 import type { WriteEmailResult } from "@/lib/jobs/write-email";
 import type { RewriteResumeResult } from "@/lib/jobs/rewrite-resume";
+import type { ResumeStale } from "@/lib/resume-staleness";
 import type { FactItem, ProfileData } from "@/lib/profile";
 import type { RefineSuggestions } from "@/lib/refine-suggestions";
 import { hasSidebar, type ThemeData } from "@/lib/themes";
@@ -141,8 +142,8 @@ export type ApplicationViewProps = {
   writingEmail: string | null;
   /** "Write again" on the resume, when it's still being written (a reload mid-way). */
   writingResume?: string | null;
-  /** The resume was written by an older release of Dossier's resume writing. */
-  resumeOutdated?: boolean;
+  /** Why the resume is worth writing again: an older release wrote it, or the profile changed since. */
+  resumeStale?: ResumeStale;
   /** The PDFs to attach to the email. */
   attachments: Attachments;
   /** Sending through Gmail (E15-2), and the application's mail (E15-3). */
@@ -191,7 +192,7 @@ export function ApplicationView({
   email,
   writingEmail,
   writingResume = null,
-  resumeOutdated = false,
+  resumeStale = null,
   attachments,
   gmail,
   profile,
@@ -729,9 +730,13 @@ export function ApplicationView({
                   versionBanner(viewed(DocumentKind.RESUME)!)
                 ) : resume.trimmed?.length ? (
                   <TrimmedNotice items={resume.trimmed} onPutBack={putBack} />
-                ) : resumeOutdated && !resumeJob ? (
+                ) : resumeStale && !resumeJob ? (
                   <div role="note" className="flex flex-wrap items-center justify-between gap-3 rounded-card bg-warning-surface px-4 py-2.5 text-meta text-warning">
-                    <span>Dossier writes resumes better since this one was written, for example keeping your key points (★).</span>
+                    <span>
+                      {resumeStale === "release"
+                        ? "Dossier writes resumes better since this one was written, for example keeping your key points (★)."
+                        : "Your profile has changed since this resume was written."}
+                    </span>
                     <Button size="sm" onClick={() => void writeResumeAgain()}>
                       Write it again
                     </Button>
