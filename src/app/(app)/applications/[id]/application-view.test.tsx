@@ -156,6 +156,7 @@ describe("the document tabs (E8-2)", () => {
     render(<ApplicationView {...props} />);
     const tabs = within(screen.getByRole("tablist", { name: "Application" })).getAllByRole("tab");
     expect(tabs.map((tab) => tab.textContent)).toEqual(["Resume", "Cover letter", "Email", "Job posting · 71% match", "Notes"]);
+    expect(screen.getByTitle("How much of the posting your profile covers")).toHaveTextContent("71%Profile match5 of 7 requirements");
     expect(screen.getByRole("tab", { name: "Resume" })).toHaveAttribute("aria-selected", "true");
   });
 

@@ -11,7 +11,7 @@ export function MatchLabel({ match, compact = false }: { match: MatchSummary; co
   const percent = matchPercent(match);
   return (
     <span title={`${match.hit} of ${match.total} requirements covered by your profile`} className="tabular-nums">
-      <span className={cn(percent >= 80 ? "font-semibold text-ink" : percent >= 60 ? "font-medium text-ink" : undefined)}>{percent}%</span>
+      <span className={cn("font-semibold", TEXT[matchTone(percent)])}>{percent}%</span>
       {compact ? ` · ${match.hit}/${match.total}` : ` match · ${match.hit}/${match.total}`}
     </span>
   );
@@ -32,9 +32,44 @@ export function ResumeMatchLabel({ resume, compact = false }: { resume: ResumeMa
   return (
     <span title={title} className="tabular-nums">
       {!compact && "Resume "}
-      <span className={cn(resume.percent >= 80 ? "font-semibold text-ink" : resume.percent >= 60 ? "font-medium text-ink" : undefined)}>
+      <span className={cn("font-semibold", TEXT[matchTone(resume.percent)])}>
         {resume.percent}%
       </span>
     </span>
+  );
+}
+
+/** Green from 80%, amber from 60%, red below: how a match is colored where it's shown large. */
+export function matchTone(percent: number): "strong" | "fair" | "weak" {
+  return percent >= 80 ? "strong" : percent >= 60 ? "fair" : "weak";
+}
+
+const TEXT = { strong: "text-success", fair: "text-warning", weak: "text-danger" } as const;
+
+const TONE = {
+  strong: "border-success-line bg-success-surface text-success",
+  fair: "border-warning-line bg-warning-surface text-warning",
+  weak: "border-danger-line bg-danger-surface text-danger",
+} as const;
+
+/**
+ * A match shown large at the top of an application: the percentage big and
+ * colored by how good it is, with what it counts under it. Used for the
+ * profile match ("Profile match · 5/7") and the tailored resume's own match.
+ */
+export function MatchBadge({ label, percent, detail, title }: { label: string; percent: number; detail: string; title?: string }) {
+  const tone = matchTone(percent);
+  return (
+    <div
+      title={title}
+      data-tone={tone}
+      className={cn("flex items-center gap-3 rounded-xl border px-4 py-2", TONE[tone])}
+    >
+      <span className="font-serif text-[34px] leading-none font-semibold tabular-nums">{percent}%</span>
+      <span className="flex flex-col text-meta leading-tight">
+        <span className="font-medium">{label}</span>
+        <span className="tabular-nums opacity-80">{detail}</span>
+      </span>
+    </div>
   );
 }

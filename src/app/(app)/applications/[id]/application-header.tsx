@@ -12,12 +12,15 @@ export function ApplicationHeader({
   title,
   meta,
   actions,
+  scores,
   children,
 }: {
   title: string;
   /** Location, work mode, salary, deadline, created: whichever are known. */
   meta: string[];
   actions: ReactNode;
+  /** How well it matches, shown large beside the title. */
+  scores?: ReactNode;
   /** The tab list, drawn on the header's bottom line. */
   children?: ReactNode;
 }) {
@@ -37,6 +40,7 @@ export function ApplicationHeader({
             </ol>
           </nav>
           <h1 className="font-serif text-[34px] leading-[1.15] tracking-[-0.015em] text-pretty">{name}</h1>
+          {scores && <div className="mt-1 flex flex-wrap gap-2">{scores}</div>}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
       </PageBar>

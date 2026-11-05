@@ -9,6 +9,7 @@ import { plainUnit, type UnitRenderer } from "@/components/documents/document-pa
 import { DocumentPreview } from "@/components/documents/document-preview";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { TailoredLetter, TailoredResume } from "@/components/documents/tailored-documents";
+import { MatchBadge } from "@/components/match-label";
 import { toast, toastResult } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +27,7 @@ import { defaultFrame, isFrameUnit, isParagraph, withFrame, WRITTEN_FRAME_UNITS 
 import type { ActivityEntry } from "@/lib/activity";
 import type { DocumentData } from "@/lib/application-documents";
 import { retry } from "@/lib/jobs/actions";
+import { resumeMatch } from "@/lib/resume-match";
 import type { RefineResult } from "@/lib/jobs/refine";
 import type { RegenerateUnitResult } from "@/lib/jobs/regenerate-unit";
 import type { JobView } from "@/lib/jobs/runner";
@@ -600,6 +602,7 @@ export function ApplicationView({
     };
 
   const resumeUnits = resume && shown(DocumentKind.RESUME, resume.units);
+  const resumeScore = resumeMatch(resumeUnits, requirements);
   // Every part of the letter, those it doesn't store yet as they've always been drawn (E8-11).
   const letterUnits =
     letter &&
@@ -682,6 +685,28 @@ export function ApplicationView({
       <ApplicationHeader
         title={application.title}
         meta={meta}
+        scores={
+          (score || resumeScore) && (
+            <>
+              {score && (
+                <MatchBadge
+                  label="Profile match"
+                  percent={matchPercent(score)}
+                  detail={`${score.hit} of ${score.total} requirements`}
+                  title="How much of the posting your profile covers"
+                />
+              )}
+              {resumeScore && (
+                <MatchBadge
+                  label="Resume match"
+                  percent={resumeScore.percent}
+                  detail={`${resumeScore.hit} of ${resumeScore.total} in the resume`}
+                  title={resumeScore.missing.length > 0 ? `Not in the resume yet: ${resumeScore.missing.join(", ")}` : "The resume mentions every requirement"}
+                />
+              )}
+            </>
+          )
+        }
         actions={
           <>
             {application.archived && <span className="rounded-full bg-track px-3 py-1.5 text-meta text-muted">Archived</span>}
