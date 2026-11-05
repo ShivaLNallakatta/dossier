@@ -186,9 +186,9 @@ export function ResumeWorkspace({ profile, themes: initialThemes, usage, baseThe
             ) : (
               maxPages !== null &&
               pages > maxPages && (
-                <p role="note" className="rounded-card bg-warning-surface px-4 py-2.5 text-meta text-warning">
-                  Your base resume runs over {pagesInWords(maxPages)}. Tailored resumes are trimmed to fit, oldest roles first.{" "}
-                  <Link href="/settings?section=documents" className="font-medium text-warning underline underline-offset-2">
+                <p role="note" className="rounded-card bg-card px-4 py-2.5 text-meta text-muted">
+                  Your base resume is your full record, so it can run long. Each tailored resume is kept to {pagesInWords(maxPages)}, with what fits the job.{" "}
+                  <Link href="/settings?section=documents" className="text-ink underline underline-offset-2">
                     Change the resume length
                   </Link>
                 </p>
