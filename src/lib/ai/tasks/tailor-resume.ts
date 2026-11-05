@@ -19,10 +19,12 @@ import {
   system,
   truthfulness,
   UNTRUSTED_POSTING,
+  workHistoryForPrompt,
+  workHistoryRule,
   type Task,
 } from "./prompt-parts";
 
-export const TAILOR_RESUME_VERSION = "tailor-resume@8";
+export const TAILOR_RESUME_VERSION = "tailor-resume@9";
 
 const answerSchema = z.object({
   summary: z.string(),
@@ -72,6 +74,7 @@ export const tailorResume: Task<TailorInput, Unit[]> = async (provider, { profil
       pageFit(options.maxPages),
       truthfulness(options.strict),
       candidateFacts(profile, facts),
+      workHistoryRule(profile),
       CREATIVITY[options.creativity],
       languageRule(options.language, options.market),
       UNTRUSTED_POSTING,
@@ -82,6 +85,7 @@ export const tailorResume: Task<TailorInput, Unit[]> = async (provider, { profil
         role: "user",
         content: [
           `The candidate's profile:\n${profileForPrompt(profile)}`,
+          workHistoryForPrompt(profile),
           `The job:\n${jobForPrompt(extracted, match)}`,
           applicationFacts(facts),
         ]

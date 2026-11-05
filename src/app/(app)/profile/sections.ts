@@ -53,6 +53,13 @@ export const SECTIONS = [
     hint: "People who'll vouch for you. They stay private unless you include them.",
   },
   {
+    id: "history",
+    optional: true,
+    label: "Working resume",
+    title: "Working resume",
+    hint: "Your full work history, longer than any one resume. Upload it or paste it here: each tailored resume takes the points that fit the job from it and your profile, under the role they belong to. It's never printed as it is.",
+  },
+  {
     id: "facts",
     optional: true,
     label: "Facts about me",

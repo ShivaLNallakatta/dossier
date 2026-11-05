@@ -7,7 +7,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { JobStatus, LanguageLevel } from "@/generated/prisma/enums";
 import { action, ActionError } from "@/lib/action";
 import { prisma } from "@/lib/prisma";
-import { fieldsFromBasics, inEntryOrder } from "@/lib/profile";
+import { fieldsFromBasics, HISTORY_KEY, HISTORY_MAX_CHARACTERS, inEntryOrder } from "@/lib/profile";
 import { findOrCreateSkill, firstSort, nextSort } from "@/lib/profile-entries";
 import { discardProfileImports, importProfileJob } from "@/lib/jobs/import-profile";
 import { isPhotoDataUrl, PHOTO_KEY, PHOTO_MAX_LENGTH, PHOTO_ON_RESUMES_KEY } from "@/lib/photo";
@@ -51,6 +51,16 @@ export const saveBasics = action(
     return null;
   },
 );
+
+// ─── Working resume ─────────────────────────────────────────────────────────
+
+/** Saves the working resume, the full work history tailoring draws from; autosaved as you type. Empty removes it. */
+export const saveHistory = action(z.object({ text: text(HISTORY_MAX_CHARACTERS) }), async ({ text: history }) => {
+  await (history.trim()
+    ? prisma.profileField.upsert({ where: { key: HISTORY_KEY }, create: { key: HISTORY_KEY, value: history }, update: { value: history } })
+    : prisma.profileField.deleteMany({ where: { key: HISTORY_KEY } }));
+  return null;
+});
 
 // ─── Photo (#224) ────────────────────────────────────────────────────────────
 

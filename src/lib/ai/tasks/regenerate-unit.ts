@@ -23,10 +23,12 @@ import {
   system,
   truthfulness,
   UNTRUSTED_POSTING,
+  workHistoryForPrompt,
+  workHistoryRule,
   type Task,
 } from "./prompt-parts";
 
-export const REGENERATE_UNIT_VERSION = "regenerate-unit@6";
+export const REGENERATE_UNIT_VERSION = "regenerate-unit@7";
 
 /** What the letter's frame parts are, for the model (E8-11). */
 const FRAME_PARTS: Record<string, string> = {
@@ -91,6 +93,7 @@ export const regenerateUnit: Task<RegenerateInput, Unit> = async (provider, inpu
       kind === DocumentKind.EMAIL && EMAIL_PARTS[unit.id],
       truthfulness(options.strict),
       candidateFacts(profile, facts),
+      kind === DocumentKind.RESUME && bullets && workHistoryRule(profile),
       CREATIVITY[options.creativity],
       languageRule(options.language, options.market),
       UNTRUSTED_POSTING,
@@ -101,6 +104,7 @@ export const regenerateUnit: Task<RegenerateInput, Unit> = async (provider, inpu
         role: "user",
         content: [
           `The candidate's profile:\n${profileForPrompt(profile)}`,
+          kind === DocumentKind.RESUME && bullets ? workHistoryForPrompt(profile) : null,
           `The job:\n${jobForPrompt(extracted, null)}`,
           `The whole ${what} now:\n${JSON.stringify(document, null, 2)}`,
           applicationFacts(facts),

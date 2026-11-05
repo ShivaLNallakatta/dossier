@@ -140,6 +140,14 @@ export type ReferenceItem = {
 };
 /** A fact the user tells the AI (PRO-14): about themselves, or for one application. */
 export type FactItem = { id: string; text: string };
+/**
+ * The working resume (#history): the candidate's full work history as one long
+ * text, pasted or read from a file, kept in ProfileField under this key. It's
+ * never printed; tailoring may take points from it into the matching role.
+ */
+export const HISTORY_KEY = "workHistory";
+export const HISTORY_MAX_CHARACTERS = 30_000;
+
 export type ProfileData = {
   basics: Basics;
   /** The photo for resumes (#224); null without one. Never given to the AI. */
@@ -154,6 +162,8 @@ export type ProfileData = {
   references: ReferenceItem[];
   /** "Facts about me": never on a document, only given to the AI. */
   facts: FactItem[];
+  /** The working resume: the whole work history, which tailoring may draw points from. Never printed. */
+  history?: string;
 };
 
 /**

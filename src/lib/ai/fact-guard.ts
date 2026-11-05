@@ -75,6 +75,8 @@ export function sourcesFor(profile: ProfileData, extracted: Extracted | null, po
     ...profile.references.flatMap((reference) => [reference.name, reference.relation, reference.company]),
     // What the candidate says about themselves backs claims like the rest (PRO-14).
     ...profile.facts.map((fact) => fact.text),
+    // The working resume is the candidate's own history, so it backs claims too.
+    profile.history ?? "",
     extracted ? [extracted.title, extracted.company, extracted.role, extracted.location, extracted.mode, extracted.salary].filter(Boolean).join(" ") : "",
     posting,
     experienceYears === undefined ? "" : String(experienceYears),

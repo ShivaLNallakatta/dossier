@@ -14,6 +14,7 @@ import { BasicsSection } from "./basics-section";
 import { EducationSection } from "./education-section";
 import { ExperienceSection } from "./experience-section";
 import { FactsSection } from "./facts-section";
+import { HistorySection } from "./history-section";
 import { ProjectsSection } from "./projects-section";
 import { PublicationsSection } from "./publications-section";
 import { ReferencesSection } from "./references-section";
@@ -57,6 +58,7 @@ export function ProfileEditor({
     education: String(profile.education.length),
     publications: String(profile.publications.length),
     references: String(profile.references.length),
+    history: profile.history?.trim() ? "1" : "0",
     facts: String(factTexts(profile.facts).length),
   };
 
@@ -76,6 +78,7 @@ export function ProfileEditor({
     education: <EducationSection profile={profile} update={setProfile} order={order.education} />,
     publications: <PublicationsSection profile={profile} update={setProfile} />,
     references: <ReferencesSection profile={profile} update={setProfile} />,
+    history: <HistorySection profile={profile} update={setProfile} />,
     facts: <FactsSection profile={profile} update={setProfile} />,
   };
 

@@ -208,6 +208,20 @@ describe("tailorResume", () => {
     expect(sent(provider).effort).toBeUndefined();
   });
 
+  it("sends the working resume, with how to use it, only when there is one", async () => {
+    const provider = model(answer);
+    const history = "At Tidewater, Jane cut checkout drop-off by 18% with a redesigned payment flow.";
+    await tailorResume(provider, { profile: { ...profile, history }, extracted, match: null, facts: [], posting }, options);
+    const text = prompt(provider);
+    expect(text).toContain(`<working_resume>\n${history}\n</working_resume>`);
+    expect(text).toMatch(/Keep every point with the role it came from/);
+
+    const without = model(answer);
+    await tailorResume(without, { profile: { ...profile, history: "  " }, extracted, match: null, facts: [], posting }, options);
+    expect(prompt(without)).not.toContain("working_resume");
+    expect(prompt(without)).not.toMatch(/working resume/);
+  });
+
   it("leaves facts out of the prompt when there are none", async () => {
     const provider = model(answer);
     await tailorResume(provider, { profile: { ...profile, facts: [{ id: "f1", text: "  " }] }, extracted, match: null, facts: [], posting }, options);
@@ -218,7 +232,7 @@ describe("tailorResume", () => {
 
   it("returns units, keeping only real roles and the profile's own skills (APP-4)", async () => {
     const { data, promptVersion } = await tailorResume(model(answer), { profile, extracted, match: null, facts: [], posting }, options);
-    expect(promptVersion).toBe("tailor-resume@8");
+    expect(promptVersion).toBe("tailor-resume@9");
     expect(data.map((unit) => unit.id)).toEqual([
       "summary",
       "experience:e1",
@@ -451,7 +465,7 @@ describe("regenerateUnit", () => {
     const unit = resume.find((entry) => entry.id === "experience:e1")!;
     const provider = model({ text: "- Rebuilt the carrier portal\n• Grew the design system\n" });
     const { data, promptVersion } = await regenerateUnit(provider, { kind: "RESUME", unit, document: resume, profile, extracted, tone: "WARM", facts: [], posting }, options);
-    expect(promptVersion).toBe("regenerate-unit@6");
+    expect(promptVersion).toBe("regenerate-unit@7");
     expect(data).toMatchObject({ id: "experience:e1", text: "Rebuilt the carrier portal\nGrew the design system" });
     expect(prompt(provider)).toContain(`Write a new version of "${unit.label}" (experience:e1)`);
     expect(sent(provider).system).not.toContain(COVER_LETTER_APPROACH);
